@@ -1,0 +1,14 @@
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\bin\Debug\net8.0\SPDTP.exe
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\bin\Debug\net8.0\SPDTP.deps.json
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\bin\Debug\net8.0\SPDTP.runtimeconfig.json
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\bin\Debug\net8.0\SPDTP.dll
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\bin\Debug\net8.0\SPDTP.pdb
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.AssemblyInfoInputs.cache
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.AssemblyInfo.cs
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.csproj.CoreCompileInputs.cache
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.dll
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\refint\SPDTP.dll
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.pdb
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\SPDTP.genruntimeconfig.cache
+C:\Users\PETO\Desktop\Workspaces\Cshrp\UDP Protocol\SPDTP\obj\Debug\net8.0\ref\SPDTP.dll
