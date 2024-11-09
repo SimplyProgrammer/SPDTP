@@ -33,11 +33,11 @@ public class Utils
 
 	public static void printHeader(byte[] bytes, int cols = 4)
 	{
-		String[] bits = bytes.Select( x => Convert.ToString( x, 2 ).PadLeft( 8, '0' ) ).ToArray();
-		for (int i = 0; i < bits.Length; i++)
+		String[] binaries = bytes.Select( x => Convert.ToString( x, 2 ).PadLeft( 8, '0' ) ).ToArray();
+		for (int i = 0; i < binaries.Length; i++)
 		{
-			String str = bits[i];
-			Console.Write(i > 0 ? "|" + str : str);
+			String bits = binaries[i];
+			Console.Write(i > 0 ? "|" + bits : bits);
 			if (i >= cols && i % cols == 0)
 				Console.WriteLine();
 		}

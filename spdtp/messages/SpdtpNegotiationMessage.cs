@@ -2,6 +2,7 @@ using System;
 
 /**
 * NEGOTIATION message.
+* Used to open and set session params between peers...
 */
 public class SpdtpNegotiationMessage : SpdtpMessage
 {

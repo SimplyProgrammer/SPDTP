@@ -7,6 +7,9 @@ using System.Threading;
 using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
+/**
+* The communication peer
+*/
 class SpdtpPeer
 {
 	protected UdpClient udpClient;
@@ -53,10 +56,21 @@ class SpdtpPeer
 
 					byte[] negotiationMessage = new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_REQUEST), segmentPayloadSize).getBytes();
 					udpClient.Send(negotiationMessage, negotiationMessage.Length, remoteSocket);
+					keepAlive.restart();
+
+					if (session == null)
+					{
+						session = new Session(segmentPayloadSize);
+						Console.WriteLine("Session with segment's payload size of " + segmentPayloadSize + " was initiated!");
+					}
+					else
+					{
+						session.setSegmentPayloadSize(segmentPayloadSize);
+						Console.WriteLine("Session's segment's payload size was updated to " + segmentPayloadSize + "!");
+					}
 
 					session = new Session(segmentPayloadSize);
 
-					keepAlive.restart();
 				}
 				catch (Exception ex)
 				{
@@ -105,8 +119,9 @@ class SpdtpPeer
 			{
 				if (isRunning)
 				{
-					Console.Error.WriteLine("SocketException: " + ex.Message);
-					// isRunning = false;
+					Console.Error.WriteLine("SocketException (" + ex.ErrorCode + "): " + ex.Message);
+					if (ex.ErrorCode == 10054) // Other peer died...
+						close();
 				}
 			}
 		}
@@ -124,13 +139,18 @@ class SpdtpPeer
 
 		if (negotiationMessage.isState(STATE_REQUEST))
 		{
-			if (negotiationMessage.getKeepAliveFlag() == 0)
-				Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was opened!");
-
 			if (session == null)
+			{
 				session = new Session(negotiationMessage.getSegmentPayloadSize());
+				if (negotiationMessage.getKeepAliveFlag() == 0)
+					Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was established with the other peer!");
+			}
 			else
+			{
 				session.setSegmentPayloadSize(negotiationMessage.getSegmentPayloadSize());
+				if (negotiationMessage.getKeepAliveFlag() == 0)
+					Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
+			}
 
 			byte[] negotiationResponse = negotiationMessage.createResponse().getBytes();
 			udpClient.Send(negotiationResponse, negotiationResponse.Length, remoteSocket);
@@ -140,9 +160,12 @@ class SpdtpPeer
 
 		if (negotiationMessage.isState(STATE_RESPONSE))
 		{
-			if (negotiationMessage.getKeepAliveFlag() == 0)
-				Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + "!");
-			session.setSegmentPayloadSize(negotiationMessage.getSegmentPayloadSize());
+			if (session != null && negotiationMessage.getSegmentPayloadSize() != session.getSegmentPayloadSize())
+			{
+				session.setSegmentPayloadSize(negotiationMessage.getSegmentPayloadSize());
+				if (negotiationMessage.getKeepAliveFlag() == 0)
+					Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
+			}
 
 			return true;
 		}
@@ -152,7 +175,7 @@ class SpdtpPeer
 
 	public void handleKeepAlive()
 	{
-		Console.WriteLine("Keep alive");
+		// Console.WriteLine("Keep alive");
 
 		byte[] negotiationMessage;
 		if (keepAlive.getTimeoutCount() > 1)

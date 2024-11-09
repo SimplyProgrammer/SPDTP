@@ -1,4 +1,7 @@
 
+/**
+* Used for time intervals and timeouts...
+*/
 public class AsyncTimer
 {
 	public readonly int TICK_RATE = 500;
