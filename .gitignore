@@ -1,5 +1,6 @@
-[Dd]ebug/
-[Rr]elease/
-x64/
-[Bb]in/
-[Oo]bj/
+*.suo
+*.user
+_ReSharper.*
+bin
+obj
+packages
