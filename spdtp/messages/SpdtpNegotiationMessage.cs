@@ -1,7 +1,12 @@
 using System;
 
+/**
+* NEGOTIATION message.
+*/
 public class SpdtpNegotiationMessage : SpdtpMessage
 {
+	public static readonly byte SESSION_TERMINATION_8x1 = 0b1111_1111;
+
 	protected short segmentPayloadSize;
 
 	// protected byte checksum;
@@ -19,12 +24,12 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 
 	public override SpdtpMessage createResponse()
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_RESPONSE), getSegmentPayloadSize());
+		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESPONSE), getSegmentPayloadSize());
 	}
 
 	public override SpdtpMessage createResendRequest()
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_RESEND_REQUEST), 0);
+		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESEND_REQUEST), 0);
 	}
 
 	public override byte[] getBytes()
@@ -32,7 +37,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		byte[] bytes = new byte[4];
 		bytes[0] = getMessageFlags();
 
-		Buffer.BlockCopy(BitConverter.GetBytes(segmentPayloadSize), 0, bytes, 1, sizeof(short));
+		Buffer.BlockCopy(Utils.getBytes(segmentPayloadSize), 0, bytes, 1, sizeof(short));
 		return bytes;
 	}
 
@@ -40,7 +45,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 	{
 		messageFlags = bytes[0];
 		
-		setSegmentPayloadSize(BitConverter.ToInt16(bytes, 1));
+		setSegmentPayloadSize(Utils.getShort(bytes, 1));
 		return this;
 	}
 
@@ -63,4 +68,9 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 	// {
 	// 	checksum = newChecksum;
 	// }
+
+	public static SpdtpNegotiationMessage newSessionTerminationRequest()
+	{
+		return new SpdtpNegotiationMessage(SESSION_TERMINATION_8x1);
+	}
 }
