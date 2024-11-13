@@ -1,4 +1,5 @@
 using System;
+using NullFX.CRC;
 
 /**
 * NEGOTIATION message.
@@ -9,8 +10,6 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 	public static readonly byte SESSION_TERMINATION_8x1 = 0b1111_1111;
 
 	protected short segmentPayloadSize;
-
-	// protected byte checksum;
 
 	public SpdtpNegotiationMessage(byte messageFlags = 0, short segmentPayloadSize = 0) : base(messageFlags, NEGOTIATION)
 	{
@@ -33,12 +32,18 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESEND_REQUEST), 0);
 	}
 
+	public override bool validate()
+	{
+		return base.validate() && isHeaderValid;
+	}
+
 	public override byte[] getBytes()
 	{
 		byte[] bytes = new byte[4];
 		bytes[0] = getMessageFlags();
 
 		Buffer.BlockCopy(Utils.getBytes(segmentPayloadSize), 0, bytes, 1, sizeof(short));
+		bytes[3] = Crc8.ComputeChecksum(bytes, 0, 3);
 		return bytes;
 	}
 
@@ -47,6 +52,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		messageFlags = bytes[0];
 		
 		setSegmentPayloadSize(Utils.getShort(bytes, 1));
+		isHeaderValid = Crc8.ComputeChecksum(bytes, 0, 3) == bytes[3];
 		return this;
 	}
 

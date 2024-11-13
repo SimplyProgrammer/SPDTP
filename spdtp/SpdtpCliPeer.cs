@@ -10,25 +10,28 @@ using static SpdtpNegotiationMessage;
 /**
 * The communication peer
 */
-class SpdtpPeer
+class SpdtpCliPeer
 {
+	public bool verbose = false;
+
 	protected UdpClient udpClient;
 	protected IPEndPoint remoteSocket;
 	protected IPEndPoint localSocket;
 
-	protected bool isRunning = true;
+	protected bool isRunning;
 
 	protected Session session;
 	protected AsyncTimer keepAlive;
+	protected SpdtpNegotiationMessage pendingNegotiationMessage;
 
-	public SpdtpPeer(IPEndPoint localSocket, IPEndPoint remoteSocket)
+	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket)
 	{
 		this.localSocket = localSocket;
 		this.remoteSocket = remoteSocket;
 
 		udpClient = new UdpClient(localSocket);
 
-		keepAlive = new AsyncTimer(handleKeepAlive, 30000 + (localSocket.Port % 2)*1000 /* prevent double keep alive */).start();
+		keepAlive = new AsyncTimer(handleKeepAlive, 30000).start();
 	}
 
 	protected void sendLoop()
@@ -44,18 +47,26 @@ class SpdtpPeer
 			}
 			else if (userInput.StartsWith("disc"))
 			{
-				terminate();
+				doTerminate();
 				break;
 			}
 			else if (userInput.StartsWith("open"))
 			{
 				try 
 				{
-					Console.WriteLine("Specify the size of segment's payload in bytes that will be used by this session: ");
-					short segmentPayloadSize = short.Parse(Console.ReadLine());
+					String[] args = userInput.Split(" ");
 
-					byte[] negotiationMessage = new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_REQUEST), segmentPayloadSize).getBytes();
-					udpClient.Send(negotiationMessage, negotiationMessage.Length, remoteSocket);
+					short segmentPayloadSize;
+					if (args.Length > 1)
+						segmentPayloadSize = short.Parse(args[1]);
+					else
+					{
+						Console.WriteLine("Specify the size of segment's payload in bytes that will be used by this session: ");
+						segmentPayloadSize = short.Parse(Console.ReadLine());
+					}
+
+					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_REQUEST), segmentPayloadSize), args.Length > 2 && args[2] == "-e");
+					keepAlive.setTimeout(5000);
 					keepAlive.restart();
 
 					if (session == null)
@@ -80,13 +91,24 @@ class SpdtpPeer
 		}
 	}
 
-	protected void terminate(String msg = "Session and connection terminated!")
+	protected void doTerminate(String msg = "Session and connection terminated!")
 	{
 		Console.WriteLine(msg);
-		byte[] negotiationMessage = newSessionTerminationRequest().getBytes();
-		udpClient.Send(negotiationMessage, negotiationMessage.Length, remoteSocket);
+		sendMessage(newSessionTerminationRequest());
 
 		close();
+	}
+
+	protected T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage
+	{
+		byte[] msgBytes = message.getBytes();
+		if (err)
+			Utils.introduceRandErrors(msgBytes);
+		udpClient.Send(msgBytes, msgBytes.Length, remoteSocket);
+
+		if (verbose)
+			Console.WriteLine("Message sent:  " + message + " - " + Utils.formatHeader(msgBytes) + (err ? "(with intentional error)" : ""));
+		return message;
 	}
 
 	protected void receiveLoop()
@@ -104,6 +126,9 @@ class SpdtpPeer
 
 				SpdtpMessage spdtpMessage = newMessageFromBytes(rawMsg);
 				keepAlive.restart();
+
+				if (verbose)
+					Console.WriteLine("Message received:  " + spdtpMessage + " - " + Utils.formatHeader(rawMsg));
 
 				if (spdtpMessage is SpdtpNegotiationMessage)
 				{
@@ -137,6 +162,14 @@ class SpdtpPeer
 			return true;
 		}
 
+		if (!negotiationMessage.validate())
+		{
+			Console.WriteLine("Erroneous negotiation message was received: " + negotiationMessage + "! Requesting resend...");
+
+			sendMessage(negotiationMessage.createResendRequest());
+			return true;
+		}
+
 		if (negotiationMessage.isState(STATE_REQUEST))
 		{
 			if (session == null)
@@ -152,8 +185,7 @@ class SpdtpPeer
 					Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
 			}
 
-			byte[] negotiationResponse = negotiationMessage.createResponse().getBytes();
-			udpClient.Send(negotiationResponse, negotiationResponse.Length, remoteSocket);
+			sendMessage(negotiationMessage.createResponse());
 			// Console.WriteLine(msg);
 			return true;
 		}
@@ -167,6 +199,13 @@ class SpdtpPeer
 					Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
 			}
 
+			pendingNegotiationMessage = null;
+			return true;
+		}
+
+		if (negotiationMessage.isState(STATE_RESEND_REQUEST) && pendingNegotiationMessage != null)
+		{
+			sendMessage(pendingNegotiationMessage);
 			return true;
 		}
 
@@ -177,16 +216,14 @@ class SpdtpPeer
 	{
 		// Console.WriteLine("Keep alive");
 
-		byte[] negotiationMessage;
-		if (keepAlive.getTimeoutCount() > 1)
-			terminate("Session and connection terminated (timeout)!");
+		if (keepAlive.getTimeoutCount() > 2)
+			doTerminate("Session and connection terminated (timeout)!");
 		else if (session != null)
 		{
-			negotiationMessage = new SpdtpNegotiationMessage((byte) (NEGOTIATION | KEEP_ALIVE | STATE_REQUEST), session.getSegmentPayloadSize()).getBytes();
-			udpClient.Send(negotiationMessage, negotiationMessage.Length, remoteSocket);
+			pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (NEGOTIATION | KEEP_ALIVE | STATE_REQUEST), session.getSegmentPayloadSize()));
 		}
 		else
-			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated in following 30s!");
+			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated soon!");
 	}
 
 	public void start()

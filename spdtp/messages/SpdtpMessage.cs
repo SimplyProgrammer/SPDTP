@@ -17,6 +17,8 @@ public abstract class SpdtpMessage
 
 	protected byte messageFlags, type;
 
+	protected bool isHeaderValid = true;
+
 	public SpdtpMessage(byte messageFlags = 0, byte type = 0)
 	{
 		this.messageFlags = messageFlags;

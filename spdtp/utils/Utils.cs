@@ -31,16 +31,32 @@ public class Utils
 		return (bytes[from] << 24) | (bytes[from+1] << 16) | (bytes[from+2] << 8) | bytes[from+3];
 	}
 
-	public static void printHeader(byte[] bytes, int cols = 4)
+	public static String formatHeader(byte[] bytes, int cols = 4)
 	{
+		String formatted = "";
+
 		String[] binaries = bytes.Select( x => Convert.ToString( x, 2 ).PadLeft( 8, '0' ) ).ToArray();
 		for (int i = 0; i < binaries.Length; i++)
 		{
 			String bits = binaries[i];
-			Console.Write(i > 0 ? "|" + bits : bits);
+			formatted += i > 0 ? "|" + bits : bits;
 			if (i >= cols && i % cols == 0)
-				Console.WriteLine();
+				formatted += "\n";
 		}
-		Console.WriteLine();
+
+		return formatted;
+	}
+
+	public static byte[] introduceRandErrors(byte[] bytes, int errorCount = 1, int seed = 123)
+	{
+		Random rand = new Random(seed);
+
+		while (errorCount-- > 0)
+		{
+			int octet = rand.Next(bytes.Length-1), bit = rand.Next(8);
+			// Console.WriteLine(octet + ", " + bit);
+			bytes[octet] ^= (byte) (0b1 << bit);
+		}
+		return bytes;
 	}
 }

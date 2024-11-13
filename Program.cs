@@ -6,16 +6,19 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
-		// SpdtpMessage spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.NEGOTIATION | SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
+		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.NEGOTIATION | SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
 		// Console.WriteLine(spdtpNegotiationMessage.validate());
 		
 		// Console.WriteLine(spdtpNegotiationMessage);
 
-		// Utils.printHeader(spdtpNegotiationMessage.getBytes());
+		// Console.WriteLine(Utils.formatHeader(spdtpNegotiationMessage.getBytes()));
 
-		// spdtpNegotiationMessage = SpdtpMessage.newMessageFromBytes(spdtpNegotiationMessage.getBytes());
-		// Console.WriteLine(spdtpNegotiationMessage.validate());
-		// Console.WriteLine(spdtpNegotiationMessage.isKeepAlive());
+		// var newHeader = Utils.introduceRandErrors(spdtpNegotiationMessage.getBytes(), 1);
+		// var newSpdtpNegotiationMessage = SpdtpMessage.newMessageFromBytes(newHeader);
+		// Console.WriteLine(newSpdtpNegotiationMessage.validate());
+		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(newSpdtpNegotiationMessage);
+		// Console.WriteLine(Utils.formatHeader(newHeader));
 		
 		// Console.WriteLine(spdtpNegotiationMessage);
 
@@ -23,6 +26,7 @@ public class Program
 
 		// timer.restart();
 
+		// Console.WriteLine(String.Join(", ", args));
 		// Console.ReadLine();
 
 		while (true)
@@ -49,7 +53,8 @@ public class Program
 					remoteIpAndPort[0] = "127.0.0.1";
 				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));
 
-				SpdtpPeer peer = new SpdtpPeer(localPoint, remotePoint);
+				var peer = new SpdtpCliPeer(localPoint, remotePoint);
+				peer.verbose = args.Length > 0 && args[0].StartsWith("-") && args[0].Contains("v");
 				peer.start();
 			}
 			catch (Exception ex) {

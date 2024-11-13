@@ -42,13 +42,13 @@ public class AsyncTimer
 		// timerThread?.Join();
 	}
 
-	public AsyncTimer restart(int remaining = -1, bool refreshTimeoutCount = true)
+	public AsyncTimer restart(int remaining = -1, int refreshTimeoutCount = 0)
 	{
 		this.remaining = remaining < 0 ? timeoutPeriod : remaining;
 
 		resetCount++;
-		if (refreshTimeoutCount)
-			timeoutCount = 0;
+		if (refreshTimeoutCount >= 0)
+			timeoutCount = refreshTimeoutCount;
 
 		return this;
 	}
