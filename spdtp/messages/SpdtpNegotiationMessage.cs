@@ -22,19 +22,14 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		return GetType().Name + "[" + messageFlags + ", " + segmentPayloadSize + "]";
 	}
 
-	public override SpdtpMessage createResponse()
+	public override SpdtpNegotiationMessage createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESPONSE), getSegmentPayloadSize());
+		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESPONSE | additionalFlags), getSegmentPayloadSize());
 	}
 
-	public override SpdtpMessage createResendRequest()
+	public override SpdtpNegotiationMessage createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESEND_REQUEST), 0);
-	}
-
-	public override bool validate()
-	{
-		return base.validate() && isHeaderValid;
+		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags), 0);
 	}
 
 	public override byte[] getBytes()
@@ -52,7 +47,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		messageFlags = bytes[0];
 		
 		setSegmentPayloadSize(Utils.getShort(bytes, 1));
-		isHeaderValid = Crc8.ComputeChecksum(bytes, 0, 3) == bytes[3];
+		isValid = Crc8.ComputeChecksum(bytes, 0, 3) == bytes[3];
 		return this;
 	}
 

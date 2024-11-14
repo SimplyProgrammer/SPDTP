@@ -17,7 +17,7 @@ public abstract class SpdtpMessage
 
 	protected byte messageFlags, type;
 
-	protected bool isHeaderValid = true;
+	protected bool isValid = true;
 
 	public SpdtpMessage(byte messageFlags = 0, byte type = 0)
 	{
@@ -26,9 +26,9 @@ public abstract class SpdtpMessage
 		this.type = type;
 	}
 
-	public abstract SpdtpMessage createResponse();
+	public abstract SpdtpMessage createResponse(byte additionalFlags = 0);
 	
-	public abstract SpdtpMessage createResendRequest();
+	public abstract SpdtpMessage createResendRequest(byte additionalFlags = 0);
 
 	public abstract byte[] getBytes();
 
@@ -36,7 +36,7 @@ public abstract class SpdtpMessage
 
 	public virtual bool validate()
 	{
-		return (byte) (messageFlags & 0b0001_1100) == 0 && type == (byte) (messageFlags & 0b1100_0000);
+		return /*(byte) (messageFlags & 0b0001_1100) == 0 &&*/ type == (byte) (messageFlags & 0b1100_0000) && isValid;
 	}
 
 	public byte getMessageFlags()
@@ -71,7 +71,7 @@ public abstract class SpdtpMessage
 			return new SpdtpNegotiationMessage().setFromBytes(bytes);
 		}
 
-		if (bytes.Length == 70)
+		if (bytes.Length == 66)
 		{
 			
 		}

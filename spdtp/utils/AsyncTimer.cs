@@ -30,8 +30,9 @@ public class AsyncTimer
 		{
 			IsBackground = true
 		};
-
 		timerThread.Start();
+
+		timeoutCount = resetCount = 0;
 		isRunning = true;
 		return this;
 	}
@@ -39,7 +40,7 @@ public class AsyncTimer
 	public void stop()
 	{
 		isRunning = false;
-		// timerThread?.Join();
+		timerThread?.Join();
 	}
 
 	public AsyncTimer restart(int remaining = -1, int refreshTimeoutCount = 0)
@@ -64,6 +65,8 @@ public class AsyncTimer
 	public AsyncTimer setTimeout(int timeoutPeriod)
 	{
 		this.timeoutPeriod = timeoutPeriod;
+		if (timeoutPeriod < remaining)
+			remaining = timeoutPeriod;
 
 		return this;
 	}

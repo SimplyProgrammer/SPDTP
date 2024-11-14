@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -10,27 +11,18 @@ using static SpdtpNegotiationMessage;
 /**
 * The communication peer
 */
-class SpdtpCliPeer
+public class SpdtpCliPeer : SpdtpConnection
 {
 	public bool verbose = false;
 
-	protected UdpClient udpClient;
-	protected IPEndPoint remoteSocket;
-	protected IPEndPoint localSocket;
-
-	protected bool isRunning;
-
-	protected Session session;
-	protected AsyncTimer keepAlive;
 	protected SpdtpNegotiationMessage pendingNegotiationMessage;
+	protected int resendAttempts = 0;
 
-	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket)
+	protected bool _receiveInterrupt;
+	protected int _testingResponseErrorCount = 0;
+
+	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket)
 	{
-		this.localSocket = localSocket;
-		this.remoteSocket = remoteSocket;
-
-		udpClient = new UdpClient(localSocket);
-
 		keepAlive = new AsyncTimer(handleKeepAlive, 30000).start();
 	}
 
@@ -40,7 +32,30 @@ class SpdtpCliPeer
 		while (isRunning)
 		{
 			String userInput = Console.ReadLine();
-			if (userInput.StartsWith("#")) // Temp
+			if (userInput.Length > 2 && userInput.StartsWith("-er"))
+			{
+				try
+				{
+					_testingResponseErrorCount = int.Parse(userInput.Substring(3));
+				}
+				catch (Exception ex)
+				{
+					Console.Error.WriteLine("Error has occurred: " + ex);
+				}
+			}
+			else if (userInput.StartsWith("-verbo"))
+			{
+				Console.WriteLine(verbose ^= true);
+			}
+			else if (userInput.StartsWith("-interr"))
+			{
+				if (_receiveInterrupt ^= true)
+					keepAlive.stop();
+				else
+					keepAlive.start();
+				Console.WriteLine(_receiveInterrupt);
+			}
+			else if (userInput.StartsWith("#")) // Temp
 			{
 				byte[] data = Encoding.UTF8.GetBytes(userInput);
 				udpClient.Send(data, data.Length, remoteSocket);
@@ -50,7 +65,7 @@ class SpdtpCliPeer
 				doTerminate();
 				break;
 			}
-			else if (userInput.StartsWith("open"))
+			else if (userInput.StartsWith("op"))
 			{
 				try 
 				{
@@ -66,7 +81,6 @@ class SpdtpCliPeer
 					}
 
 					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_REQUEST), segmentPayloadSize), args.Length > 2 && args[2] == "-e");
-					keepAlive.setTimeout(5000);
 					keepAlive.restart();
 
 					if (session == null)
@@ -79,9 +93,6 @@ class SpdtpCliPeer
 						session.setSegmentPayloadSize(segmentPayloadSize);
 						Console.WriteLine("Session's segment's payload size was updated to " + segmentPayloadSize + "!");
 					}
-
-					session = new Session(segmentPayloadSize);
-
 				}
 				catch (Exception ex)
 				{
@@ -91,15 +102,7 @@ class SpdtpCliPeer
 		}
 	}
 
-	protected void doTerminate(String msg = "Session and connection terminated!")
-	{
-		Console.WriteLine(msg);
-		sendMessage(newSessionTerminationRequest());
-
-		close();
-	}
-
-	protected T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage
+	protected override T sendMessage<T>(T message, bool err = false)
 	{
 		byte[] msgBytes = message.getBytes();
 		if (err)
@@ -111,12 +114,15 @@ class SpdtpCliPeer
 		return message;
 	}
 
-	protected void receiveLoop()
+	protected override void receiveLoop()
 	{
 		while (isRunning)
 		{
 			try
 			{
+				if (_receiveInterrupt)
+					continue;
+
 				byte[] rawMsg = udpClient.Receive(ref localSocket);
 				if (rawMsg[0] == '#') // Temp
 				{
@@ -152,6 +158,24 @@ class SpdtpCliPeer
 		}
 	}
 
+	protected bool handleResend(SpdtpNegotiationMessage negotiationMessage)
+	{
+		if (pendingNegotiationMessage != null)
+		{
+			// Console.WriteLine(resendAttempts);
+			if (resendAttempts++ > 2)
+			{
+				doTerminate("Session and connection terminated (too many transmission errors)!");
+				return false;
+			}
+
+			sendMessageAsync(pendingNegotiationMessage);
+			return true;
+		}
+		else
+			return false;
+	}
+
 	protected bool handleNegotiationMsg(SpdtpNegotiationMessage negotiationMessage)
 	{
 		if (negotiationMessage.getMessageFlags() == SESSION_TERMINATION_8x1)
@@ -162,11 +186,19 @@ class SpdtpCliPeer
 			return true;
 		}
 
+		keepAlive.setTimeout(5000);
+
 		if (!negotiationMessage.validate())
 		{
-			Console.WriteLine("Erroneous negotiation message was received: " + negotiationMessage + "! Requesting resend...");
+			Console.WriteLine("Erroneous negotiation message was received: " + negotiationMessage + "!");
 
-			sendMessage(negotiationMessage.createResendRequest());
+			if (!handleResend(negotiationMessage))
+			{
+				sendMessageAsync(negotiationMessage.createResendRequest());
+				Console.WriteLine("Requesting resend!");
+			}
+			else
+				Console.WriteLine("Resend performed!");
 			return true;
 		}
 
@@ -185,7 +217,7 @@ class SpdtpCliPeer
 					Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
 			}
 
-			sendMessage(negotiationMessage.createResponse());
+			sendMessageAsync(negotiationMessage.createResponse(), _testingResponseErrorCount-- > 0);
 			// Console.WriteLine(msg);
 			return true;
 		}
@@ -200,23 +232,24 @@ class SpdtpCliPeer
 			}
 
 			pendingNegotiationMessage = null;
+			resendAttempts = 0;
 			return true;
 		}
 
 		if (negotiationMessage.isState(STATE_RESEND_REQUEST) && pendingNegotiationMessage != null)
 		{
-			sendMessage(pendingNegotiationMessage);
+			if (!handleResend(negotiationMessage))
+				Console.WriteLine("Nothing to resend...");
 			return true;
 		}
 
 		return false;
 	}
 
-	public void handleKeepAlive()
+	public override void handleKeepAlive()
 	{
-		// Console.WriteLine("Keep alive");
-
-		if (keepAlive.getTimeoutCount() > 2)
+		// Console.WriteLine("Keep alive" + keepAlive.getTimeoutCount());
+		if (keepAlive.getTimeoutCount() > 3)
 			doTerminate("Session and connection terminated (timeout)!");
 		else if (session != null)
 		{
@@ -226,25 +259,12 @@ class SpdtpCliPeer
 			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated soon!");
 	}
 
-	public void start()
+	public override void start()
 	{
-		isRunning = true;
-
-		Thread receiveThread = new Thread(receiveLoop);
-		receiveThread.Start();
+		base.start();
 
 		// Thread sendingThread = new Thread(sendLoop);
 		// sendingThread.Start();
 		sendLoop();
-	}
-
-	public void close(int delay = 0)
-	{
-		if (delay > 0)
-			Thread.Sleep(delay);
-
-		isRunning = false;
-		udpClient.Close();
-		keepAlive.stop();
 	}
 }
