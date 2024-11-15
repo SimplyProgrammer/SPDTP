@@ -6,21 +6,38 @@ public class Program
 {
 	public static void Main(string[] args)
 	{
-		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.NEGOTIATION | SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
-		// Console.WriteLine(spdtpNegotiationMessage.validate());
+		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
 		
 		// Console.WriteLine(spdtpNegotiationMessage);
-
+		// Console.WriteLine(spdtpNegotiationMessage.validate());
 		// Console.WriteLine(Utils.formatHeader(spdtpNegotiationMessage.getBytes()));
 
 		// var newHeader = Utils.introduceRandErrors(spdtpNegotiationMessage.getBytes(), 1);
 		// var newSpdtpNegotiationMessage = SpdtpMessage.newMessageFromBytes(newHeader);
-		// Console.WriteLine(newSpdtpNegotiationMessage.validate());
 		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
-		// Console.WriteLine(newSpdtpNegotiationMessage);
-		// Console.WriteLine(Utils.formatHeader(newHeader));
 		
 		// Console.WriteLine(spdtpNegotiationMessage);
+		// Console.WriteLine(newSpdtpNegotiationMessage.validate());
+		// Console.WriteLine(Utils.formatHeader(newHeader));
+
+		// Console.WriteLine();
+
+		// var spdtpMessage = new SpdtpResourceInfoMessage(SpdtpMessage.STATE_REQUEST, 123, "Hello!");
+		
+		// Console.WriteLine(spdtpMessage);
+		// Console.WriteLine(spdtpMessage.validate());
+		// Console.WriteLine(Utils.formatHeader(spdtpMessage.getBytes()));
+
+		// newHeader = Utils.introduceRandErrors(spdtpMessage.getBytes(), 1);
+
+		// var newSpdtpMessage = SpdtpMessage.newMessageFromBytes(newHeader);
+
+		// Console.WriteLine(newSpdtpMessage);
+		// Console.WriteLine(newSpdtpMessage.validate());
+		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(Utils.formatHeader(newHeader));
+		
+		// Console.WriteLine(newSpdtpMessage);
 
 		// AsyncTimer timer = new AsyncTimer(() => Console.WriteLine("haha"), 3000).start();
 

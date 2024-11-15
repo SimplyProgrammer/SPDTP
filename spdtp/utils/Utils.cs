@@ -3,7 +3,7 @@
 */
 public class Utils 
 {
-	public static byte[] getBytes(short value)
+	public static byte[] getBytes(ushort value)
 	{
 		return new byte[] {
 			(byte) ((value >> 8) & 0xFF),
@@ -11,9 +11,9 @@ public class Utils
 		};
 	}
 
-	public static short getShort(byte[] bytes, int from = 0)
+	public static ushort getShort(byte[] bytes, int from = 0)
 	{
-		return (short) ((bytes[from] << 8) | bytes[from+1]);
+		return (ushort) ((bytes[from] << 8) | bytes[from+1]);
 	}
 
 	public static byte[] getBytes(int value)
@@ -31,6 +31,11 @@ public class Utils
 		return (bytes[from] << 24) | (bytes[from+1] << 16) | (bytes[from+2] << 8) | bytes[from+3];
 	}
 
+	public static int getInt24(byte[] bytes, int from = 0)
+	{
+		return (bytes[from] << 16) | (bytes[from+1] << 8) | bytes[from+2];
+	}
+
 	public static String formatHeader(byte[] bytes, int cols = 4)
 	{
 		String formatted = "";
@@ -39,9 +44,7 @@ public class Utils
 		for (int i = 0; i < binaries.Length; i++)
 		{
 			String bits = binaries[i];
-			formatted += i > 0 ? "|" + bits : bits;
-			if (i >= cols && i % cols == 0)
-				formatted += "\n";
+			formatted += (i > 0 && i % cols == 0) ? "\n" + bits : (i > 0 ? "|" + bits : bits);
 		}
 
 		return formatted;
@@ -58,5 +61,13 @@ public class Utils
 			bytes[octet] ^= (byte) (0b1 << bit);
 		}
 		return bytes;
+	}
+
+	public static string truncString(String input, int maxLength, String substitute = "_")
+	{
+		if (input.Length <= maxLength)
+			return input;
+
+		return substitute + input.Substring(input.Length - maxLength + 1);
 	}
 }

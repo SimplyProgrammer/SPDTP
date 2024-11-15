@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -9,7 +10,7 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The communication peer
+* The implementation Spdtp with CLI interface as the implementor of SpdtpConnection...
 */
 public class SpdtpCliPeer : SpdtpConnection
 {
@@ -31,43 +32,58 @@ public class SpdtpCliPeer : SpdtpConnection
 		Console.WriteLine("Your connection is pending!\nType 'open' to open the communication session!\nType # something to send a textual message!");
 		while (isRunning)
 		{
-			String userInput = Console.ReadLine();
-			if (userInput.Length > 2 && userInput.StartsWith("-er"))
+			try 
 			{
-				try
+				String userInput = Console.ReadLine();
+				if (userInput.Length > 2 && userInput.StartsWith("-er"))
 				{
-					_testingResponseErrorCount = int.Parse(userInput.Substring(3));
+					try
+					{
+						_testingResponseErrorCount = int.Parse(userInput.Substring(3));
+					}
+					catch (Exception ex)
+					{
+						Console.Error.WriteLine("Error has occurred: " + ex);
+					}
 				}
-				catch (Exception ex)
+				else if (userInput.StartsWith("-verbo"))
 				{
-					Console.Error.WriteLine("Error has occurred: " + ex);
+					Console.WriteLine(verbose ^= true);
 				}
-			}
-			else if (userInput.StartsWith("-verbo"))
-			{
-				Console.WriteLine(verbose ^= true);
-			}
-			else if (userInput.StartsWith("-interr"))
-			{
-				if (_receiveInterrupt ^= true)
-					keepAlive.stop();
-				else
-					keepAlive.start();
-				Console.WriteLine(_receiveInterrupt);
-			}
-			else if (userInput.StartsWith("#")) // Temp
-			{
-				byte[] data = Encoding.UTF8.GetBytes(userInput);
-				udpClient.Send(data, data.Length, remoteSocket);
-			}
-			else if (userInput.StartsWith("disc"))
-			{
-				doTerminate();
-				break;
-			}
-			else if (userInput.StartsWith("op"))
-			{
-				try 
+				else if (userInput.StartsWith("-interr"))
+				{
+					if (_receiveInterrupt ^= true)
+						keepAlive.stop();
+					else
+						keepAlive.start();
+					Console.WriteLine(_receiveInterrupt);
+				}
+				else if (userInput.StartsWith("#")) // Temp
+				{
+					if (session == null)
+						Console.WriteLine("Session is was not opened (null)!");
+					else if (userInput.Length > 1 && userInput[1] == '!')
+					{
+						FileStream resource = File.Open(userInput = userInput.Substring(2), FileMode.Open, FileAccess.Read);
+						
+						byte[] bytes = new byte[userInput.Length];
+						resource.Read(bytes, 0, bytes.Length);
+						session.sendResource(bytes, resource);
+
+						resource.Close();
+					}
+					else
+					{
+						byte[] bytes = Encoding.ASCII.GetBytes(userInput = userInput.Substring(1));
+						session.sendResource(bytes, userInput);
+					}
+				}
+				else if (userInput.StartsWith("disc"))
+				{
+					doTerminate();
+					break;
+				}
+				else if (userInput.StartsWith("op"))
 				{
 					String[] args = userInput.Split(" ");
 
@@ -80,12 +96,12 @@ public class SpdtpCliPeer : SpdtpConnection
 						segmentPayloadSize = short.Parse(Console.ReadLine());
 					}
 
-					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (NEGOTIATION | STATE_REQUEST), segmentPayloadSize), args.Length > 2 && args[2] == "-e");
+					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), args.Length > 2 && args[2] == "-e");
 					keepAlive.restart();
 
 					if (session == null)
 					{
-						session = new Session(segmentPayloadSize);
+						session = new Session(this, segmentPayloadSize);
 						Console.WriteLine("Session with segment's payload size of " + segmentPayloadSize + " was initiated!");
 					}
 					else
@@ -94,15 +110,15 @@ public class SpdtpCliPeer : SpdtpConnection
 						Console.WriteLine("Session's segment's payload size was updated to " + segmentPayloadSize + "!");
 					}
 				}
-				catch (Exception ex)
-				{
-					Console.Error.WriteLine("Error has occurred: " + ex);
-				}
+			}
+			catch (Exception ex)
+			{
+				Console.Error.WriteLine("Error has occurred: " + ex);
 			}
 		}
 	}
 
-	protected override T sendMessage<T>(T message, bool err = false)
+	public override T sendMessage<T>(T message, bool err = false)
 	{
 		byte[] msgBytes = message.getBytes();
 		if (err)
@@ -121,14 +137,17 @@ public class SpdtpCliPeer : SpdtpConnection
 			try
 			{
 				if (_receiveInterrupt)
-					continue;
-
-				byte[] rawMsg = udpClient.Receive(ref localSocket);
-				if (rawMsg[0] == '#') // Temp
 				{
-					Console.WriteLine("Message received: " + Encoding.UTF8.GetString(rawMsg).Substring(1));
+					Thread.Sleep(90);
 					continue;
 				}
+
+				byte[] rawMsg = udpClient.Receive(ref localSocket);
+				// if (rawMsg[0] == '#') // Temp
+				// {
+				// 	Console.WriteLine("Message received: " + Encoding.ASCII.GetString(rawMsg).Substring(1));
+				// 	continue;
+				// }
 
 				SpdtpMessage spdtpMessage = newMessageFromBytes(rawMsg);
 				keepAlive.restart();
@@ -138,13 +157,26 @@ public class SpdtpCliPeer : SpdtpConnection
 
 				if (spdtpMessage is SpdtpNegotiationMessage)
 				{
-					SpdtpNegotiationMessage negotiationMessage = (SpdtpNegotiationMessage) spdtpMessage;
-
-					if (handleNegotiationMsg(negotiationMessage))
+					if (handleNegotiationMsg((SpdtpNegotiationMessage) spdtpMessage))
 						continue;
 				}
 
-				Console.WriteLine("Unknown message was received: " + spdtpMessage);
+				if (session != null)
+				{
+					if (spdtpMessage is SpdtpResourceInfoMessage)
+					{
+						if (session.handleIncomingResourceMsg((SpdtpResourceInfoMessage) spdtpMessage))
+							continue;
+					}
+
+					if (spdtpMessage is SpdtpResourceSegment)
+					{
+						if (session.handleResourceSegmentMsg((SpdtpResourceSegment) spdtpMessage))
+							continue;
+					}
+				}
+
+				Console.WriteLine("Unknown message was received: " + spdtpMessage + "!");
 			}
 			catch (SocketException ex)
 			{
@@ -158,22 +190,12 @@ public class SpdtpCliPeer : SpdtpConnection
 		}
 	}
 
-	protected bool handleResend(SpdtpNegotiationMessage negotiationMessage)
+	protected void attemptResendPending()
 	{
-		if (pendingNegotiationMessage != null)
-		{
-			// Console.WriteLine(resendAttempts);
-			if (resendAttempts++ > 2)
-			{
-				doTerminate("Session and connection terminated (too many transmission errors)!");
-				return false;
-			}
-
-			sendMessageAsync(pendingNegotiationMessage);
-			return true;
-		}
+		if (resendAttempts++ > 2)
+			doTerminate("Session and connection terminated (too many transmission errors)!");
 		else
-			return false;
+			sendMessageAsync(pendingNegotiationMessage);
 	}
 
 	protected bool handleNegotiationMsg(SpdtpNegotiationMessage negotiationMessage)
@@ -192,13 +214,16 @@ public class SpdtpCliPeer : SpdtpConnection
 		{
 			Console.WriteLine("Erroneous negotiation message was received: " + negotiationMessage + "!");
 
-			if (!handleResend(negotiationMessage))
+			if (pendingNegotiationMessage == null)
 			{
 				sendMessageAsync(negotiationMessage.createResendRequest());
-				Console.WriteLine("Requesting resend!");
+				Console.WriteLine("Resend requested!");
 			}
 			else
+			{
+				attemptResendPending();
 				Console.WriteLine("Resend performed!");
+			}
 			return true;
 		}
 
@@ -206,7 +231,7 @@ public class SpdtpCliPeer : SpdtpConnection
 		{
 			if (session == null)
 			{
-				session = new Session(negotiationMessage.getSegmentPayloadSize());
+				session = new Session(this, negotiationMessage.getSegmentPayloadSize());
 				if (negotiationMessage.getKeepAliveFlag() == 0)
 					Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was established with the other peer!");
 			}
@@ -236,10 +261,12 @@ public class SpdtpCliPeer : SpdtpConnection
 			return true;
 		}
 
-		if (negotiationMessage.isState(STATE_RESEND_REQUEST) && pendingNegotiationMessage != null)
+		if (negotiationMessage.isState(STATE_RESEND_REQUEST))
 		{
-			if (!handleResend(negotiationMessage))
+			if (pendingNegotiationMessage == null)
 				Console.WriteLine("Nothing to resend...");
+			else
+				attemptResendPending();
 			return true;
 		}
 
@@ -253,7 +280,7 @@ public class SpdtpCliPeer : SpdtpConnection
 			doTerminate("Session and connection terminated (timeout)!");
 		else if (session != null)
 		{
-			pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (NEGOTIATION | KEEP_ALIVE | STATE_REQUEST), session.getSegmentPayloadSize()));
+			pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (KEEP_ALIVE | STATE_REQUEST), session.getSegmentPayloadSize()));
 		}
 		else
 			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated soon!");

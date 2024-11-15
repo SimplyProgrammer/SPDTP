@@ -11,9 +11,9 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 
 	protected short segmentPayloadSize;
 
-	public SpdtpNegotiationMessage(byte messageFlags = 0, short segmentPayloadSize = 0) : base(messageFlags, NEGOTIATION)
+	public SpdtpNegotiationMessage(byte additionalMessageFlags = 0, short segmentPayloadSize = 0) : base((byte) (additionalMessageFlags | NEGOTIATION), NEGOTIATION)
 	{
-		this.segmentPayloadSize = segmentPayloadSize;
+		setSegmentPayloadSize(segmentPayloadSize);
 		// this.checksum = checksum;
 	}
 
@@ -24,12 +24,12 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 
 	public override SpdtpNegotiationMessage createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESPONSE | additionalFlags), getSegmentPayloadSize());
+		return new SpdtpNegotiationMessage((byte) (getKeepAliveFlag() | STATE_RESPONSE | additionalFlags), getSegmentPayloadSize());
 	}
 
 	public override SpdtpNegotiationMessage createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (NEGOTIATION | getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags), 0);
+		return new SpdtpNegotiationMessage((byte) (getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags));
 	}
 
 	public override byte[] getBytes()
@@ -38,7 +38,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		bytes[0] = getMessageFlags();
 
 		Buffer.BlockCopy(Utils.getBytes(segmentPayloadSize), 0, bytes, 1, sizeof(short));
-		bytes[3] = Crc8.ComputeChecksum(bytes, 0, 3);
+		bytes[3] = Crc8.ComputeChecksum(bytes, 0, bytes.Length-1);
 		return bytes;
 	}
 
@@ -46,8 +46,9 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 	{
 		messageFlags = bytes[0];
 		
-		setSegmentPayloadSize(Utils.getShort(bytes, 1));
-		isValid = Crc8.ComputeChecksum(bytes, 0, 3) == bytes[3];
+		setSegmentPayloadSize((short) Utils.getShort(bytes, 1));
+
+		isValid = Crc8.ComputeChecksum(bytes, 0, bytes.Length-1) == bytes[3];
 		return this;
 	}
 

@@ -1,33 +1,75 @@
 using System;
 using NullFX.CRC;
 
-// public class SpdtpResourceSegment : SpdtpMessage
-// {
-// 	public override string ToString()
-// 	{
-// 		return GetType().Name + "[" + messageFlags + ", " + segmentCount + "]";
-// 	}
+public class SpdtpResourceSegment : SpdtpMessage
+{
+	protected int segmentID;
+	protected int resourceIdentifier;
 
-// 	public override SpdtpResourceSegment createResponse(byte additionalFlags = 0)
-// 	{
-// 		return new SpdtpResourceSegment((byte) (INCOMING_RESOURCE_INFO | getKeepAliveFlag() | STATE_RESPONSE | additionalFlags));
-// 	}
+	protected byte[] payload;
 
-// 	public override SpdtpResourceSegment createResendRequest(byte additionalFlags = 0)
-// 	{
-// 		return new SpdtpResourceSegment((byte) (INCOMING_RESOURCE_INFO | getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags), 0);
-// 	}
+	public SpdtpResourceSegment(byte additionalMessageFlags = 0, int segmentID = 0, int resourceIdentifier = 0, byte[] payload = null) : base((byte) (additionalMessageFlags | RESOURCE_SEGMENT), RESOURCE_SEGMENT)
+	{
+		setSegmentID(segmentID);
+		setResourceIdentifier(resourceIdentifier);
+		setPayload(payload);
+	}
 
-// 	public override byte[] getBytes()
-// 	{
-// 		byte[] bytes = new byte[66];
+	// public override string ToString()
+	// {
+	// 	return GetType().Name + "[" + messageFlags + ", " + segmentCount + "]";
+	// }
 
-// 		return bytes;
-// 	}
+	public override SpdtpResourceSegment createResponse(byte additionalFlags = 0)
+	{
+		return new SpdtpResourceSegment((byte) (getKeepAliveFlag() | STATE_RESPONSE | additionalFlags));
+	}
 
-// 	public override SpdtpMessage setFromBytes(byte[] bytes)
-// 	{
+	public override SpdtpResourceSegment createResendRequest(byte additionalFlags = 0)
+	{
+		return new SpdtpResourceSegment((byte) (getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags));
+	}
 
-// 		return this;
-// 	}
-// }
+	public override byte[] getBytes()
+	{
+		byte[] bytes = new byte[123];
+
+		return bytes;
+	}
+
+	public override SpdtpMessage setFromBytes(byte[] bytes)
+	{
+		// TODO
+		return this;
+	}
+
+	public int getSegmentID()
+	{
+		return this.segmentID;
+	}
+
+	public void setSegmentID(int segmentID)
+	{
+		this.segmentID = segmentID;
+	}
+
+	public int getResourceIdentifier()
+	{
+		return this.resourceIdentifier;
+	}
+
+	public void setResourceIdentifier(int resourceIdentifier)
+	{
+		this.resourceIdentifier = resourceIdentifier;
+	}
+
+	public byte[] getPayload()
+	{
+		return this.payload;
+	}
+
+	public void setPayload(byte[] payload)
+	{
+		this.payload = payload;
+	}
+}

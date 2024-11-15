@@ -71,11 +71,11 @@ public abstract class SpdtpMessage
 			return new SpdtpNegotiationMessage().setFromBytes(bytes);
 		}
 
-		if (bytes.Length == 66)
+		if (bytes.Length <= 66 && (bytes[0] & INCOMING_RESOURCE_INFO) != 0)
 		{
-			
+			return new SpdtpResourceInfoMessage().setFromBytes(bytes);
 		}
 
-		return null;
+		return new SpdtpResourceSegment().setFromBytes(bytes);
 	}
 }

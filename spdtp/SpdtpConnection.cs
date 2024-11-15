@@ -9,7 +9,7 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The communication peer
+* The abstraction of SpdtpConnection (peer)
 */
 public abstract class SpdtpConnection
 {
@@ -30,7 +30,7 @@ public abstract class SpdtpConnection
 		udpClient = new UdpClient(localSocket);
 	}
 
-	protected virtual void doTerminate(String msg = "Session and connection terminated!")
+	public virtual void doTerminate(String msg = "Session and connection terminated!")
 	{
 		Console.WriteLine(msg);
 		sendMessage(newSessionTerminationRequest());
@@ -38,7 +38,7 @@ public abstract class SpdtpConnection
 		close();
 	}
 
-	protected virtual void sendMessageAsync(SpdtpMessage message, bool err = false)
+	public virtual void sendMessageAsync(SpdtpMessage message, bool err = false)
 	{
 		new Thread(() => sendMessage(message, err))
 		{
@@ -46,7 +46,7 @@ public abstract class SpdtpConnection
 		}.Start();
 	}
 
-	protected abstract T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage;
+	public abstract T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage;
 
 	protected abstract void receiveLoop();
 
