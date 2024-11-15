@@ -4,6 +4,24 @@ using System.Net.Sockets;
 
 public class Program
 {
+	// static object a(int additionalCount = 0, int period = 5000)
+	// {
+	// 	new Thread(() => Console.WriteLine("test"))
+	// 	{
+	// 		IsBackground = true
+	// 	}.Start();
+
+	// 	if (additionalCount > 0)
+	// 		return new AsyncTimer((self) => {
+	// 			if (--additionalCount < 0)
+	// 				self.stop();
+	// 			else
+	// 				Console.WriteLine("test");
+	// 		}, period).start();
+
+	// 	return null;
+	// }
+
 	public static void Main(string[] args)
 	{
 		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
@@ -46,37 +64,37 @@ public class Program
 		// Console.WriteLine(String.Join(", ", args));
 		// Console.ReadLine();
 
-		while (true)
-		{
-			try 
-			{
-				Console.Write("Enter your local socket address: ");
-				String localSocketAddress = Console.ReadLine();
-				if (localSocketAddress?.ToLower() == "exit")
-					break;
+		// while (true)
+		// {
+		// 	try 
+		// 	{
+		// 		Console.Write("Enter your local socket address: ");
+		// 		String localSocketAddress = Console.ReadLine();
+		// 		if (localSocketAddress?.ToLower() == "exit")
+		// 			break;
+		
+		// 		String[] localIpAndPort = localSocketAddress.Split(":");
+		// 		if (localIpAndPort[0].Length < 1)
+		// 			localIpAndPort[0] = "127.0.0.1";
+		// 		IPEndPoint localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(localIpAndPort[1]));
 
-				String[] localIpAndPort = localSocketAddress.Split(":");
-				if (localIpAndPort[0].Length < 1)
-					localIpAndPort[0] = "127.0.0.1";
-				IPEndPoint localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(localIpAndPort[1]));
+		// 		Console.Write("Enter remote socket address: ");
+		// 		String remoteSocketAddress = Console.ReadLine();
+		// 		if (remoteSocketAddress?.ToLower() == "exit")
+		// 			break;
 
-				Console.Write("Enter remote socket address: ");
-				String remoteSocketAddress = Console.ReadLine();
-				if (remoteSocketAddress?.ToLower() == "exit")
-					break;
+		// 		String[] remoteIpAndPort = remoteSocketAddress.Split(":");
+		// 		if (remoteIpAndPort[0].Length < 1)
+		// 			remoteIpAndPort[0] = "127.0.0.1";
+		// 		IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));
 
-				String[] remoteIpAndPort = remoteSocketAddress.Split(":");
-				if (remoteIpAndPort[0].Length < 1)
-					remoteIpAndPort[0] = "127.0.0.1";
-				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));
-
-				var peer = new SpdtpCliPeer(localPoint, remotePoint);
-				peer.verbose = args.Length > 0 && args[0].StartsWith("-") && args[0].Contains("v");
-				peer.start();
-			}
-			catch (Exception ex) {
-				Console.Error.WriteLine("Error has occurred: " + ex);
-			}
-		}
+		// 		var peer = new SpdtpCliPeer(localPoint, remotePoint);
+		// 		peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");
+		// 		peer.start();
+		// 	}
+		// 	catch (Exception ex) {
+		// 		Console.Error.WriteLine("Error has occurred: " + ex);
+		// 	}
+		// }
 	}
 }

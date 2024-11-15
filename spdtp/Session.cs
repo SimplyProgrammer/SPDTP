@@ -6,18 +6,19 @@ using static SpdtpMessage;
 */
 public class Session
 {
-	protected short segmentPayloadSize;
+	public static readonly String TEXT_MSG_MARK = new String(new char[] {(char) 1, (char) 3, (char) 2,});
+
+	protected SpdtpNegotiationMessage metadata;
 
 	protected SpdtpConnection connection;
 
-	protected Dictionary<int, ResourceTransmission> transmissions;
+	protected Dictionary<int, ResourceTransmission> transmissions = new Dictionary<int, ResourceTransmission>();
 
 	protected SpdtpResourceInfoMessage pendingResourceInfoMessage;
-	protected int infoMessageResendAttempts = 0;
 
-	public Session(SpdtpConnection connection, short segmentPayloadSize)
+	public Session(SpdtpConnection connection, SpdtpNegotiationMessage openingMetadata)
 	{
-		setSegmentPayloadSize(segmentPayloadSize);
+		setMetadata(openingMetadata);
 		this.connection = connection;
 	}
 
@@ -25,27 +26,23 @@ public class Session
 	{
 		if (resourceDescriptor is FileStream)
 		{
-			var resourceInfoMsg = new SpdtpResourceInfoMessage(STATE_REQUEST, (resourceBytes.Length - 1) / segmentPayloadSize + 1, Utils.truncString(((FileStream) resourceDescriptor).Name, 60));
-			connection.sendMessageAsync(resourceInfoMsg);
-			return resourceInfoMsg;
+			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1, Utils.truncString(((FileStream) resourceDescriptor).Name, 60));
+
+			connection.sendMessageAsync(pendingResourceInfoMessage);
+			return pendingResourceInfoMessage;
 		}
 
 		if (resourceDescriptor is String)
 		{
-			var resourceInfoMsg = new SpdtpResourceInfoMessage(STATE_REQUEST, resourceBytes.Length <= 60 ? 0 : (resourceBytes.Length - 1) / segmentPayloadSize + 1, Utils.truncString(resourceDescriptor.ToString(), 60, ""));
-			connection.sendMessageAsync(resourceInfoMsg);
-			return resourceInfoMsg;
+			pendingResourceInfoMessage = resourceBytes.Length <= 60 ? 
+				new SpdtpResourceInfoMessage(STATE_REQUEST, 0, resourceDescriptor.ToString()) :
+				new SpdtpResourceInfoMessage(STATE_REQUEST, (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
+
+			connection.sendMessageAsync(pendingResourceInfoMessage);
+			return pendingResourceInfoMessage;
 		}
 
 		return null;
-	}
-
-	protected void attemptResendPendingResourceInfo()
-	{
-		if (infoMessageResendAttempts++ > 2)
-			connection.doTerminate("Session and connection terminated (too many transmission errors)!");
-		else
-			connection.sendMessageAsync(pendingResourceInfoMessage);
 	}
 
 	public bool handleIncomingResourceMsg(SpdtpResourceInfoMessage incomingResourceMsg)
@@ -59,22 +56,23 @@ public class Session
 				connection.sendMessageAsync(incomingResourceMsg.createResendRequest());
 				Console.WriteLine("Resend requested!");
 			}
-			else
-			{
-				attemptResendPendingResourceInfo();
+			else if (connection.attemptResend(pendingResourceInfoMessage))
 				Console.WriteLine("Resend performed!");
-			}
 			return true;
 		}
 
 		if (incomingResourceMsg.isState(STATE_REQUEST))
 		{
-			// TODO
+			// TODO - initialize resources
 		}
 
 		if (incomingResourceMsg.isState(STATE_RESPONSE))
 		{
-			// TODO
+			// TODO - start transmission
+
+			pendingResourceInfoMessage = null;
+			connection.resetResendAttempts();
+			return true;
 		}
 
 		if (incomingResourceMsg.isState(STATE_RESEND_REQUEST))
@@ -82,7 +80,7 @@ public class Session
 			if (pendingResourceInfoMessage == null)
 				Console.WriteLine("No resource into to resend...");
 			else
-				attemptResendPendingResourceInfo();
+				connection.attemptResend(pendingResourceInfoMessage);
 			return true;
 		}
 
@@ -92,22 +90,16 @@ public class Session
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
 		var transmission = transmissions[resourceSegment.getResourceIdentifier()];
-		if (transmission != null)
-		{
-			transmission.handleResourceSegmentMsg(resourceSegment);
-			return true;
-		}
-
-		return false;
+		return transmission != null && transmission.handleResourceSegmentMsg(resourceSegment);
 	}
 
-	public short getSegmentPayloadSize()
+	public SpdtpNegotiationMessage getMetadata()
 	{
-		return segmentPayloadSize;
+		return metadata;
 	}
 
-	public void setSegmentPayloadSize(short newSegmentPayloadSize)
+	public void setMetadata(SpdtpNegotiationMessage newMetadata)
 	{
-		segmentPayloadSize = newSegmentPayloadSize;
+		metadata = newMetadata;
 	}
 }

@@ -9,7 +9,7 @@ public abstract class SpdtpMessage
 	public static readonly byte INCOMING_RESOURCE_INFO = 0b1000_0000;
 	public static readonly byte RESOURCE_SEGMENT = 0b1100_0000;
 
-	public static readonly byte KEEP_ALIVE = 0b0010_0000;
+	// public static readonly byte KEEP_ALIVE = 0b0010_0000;
 
 	public static readonly byte STATE_RESEND_REQUEST = 0;
 	public static readonly byte STATE_REQUEST = 1;
@@ -59,10 +59,10 @@ public abstract class SpdtpMessage
 		return getTransmissionState() == state;
 	}
 
-	public int getKeepAliveFlag()
-	{
-		return messageFlags & 0b0010_0000;
-	}
+	// public int getKeepAliveFlag()
+	// {
+	// 	return messageFlags & 0b0010_0000;
+	// }
 
 	public static SpdtpMessage newMessageFromBytes(byte[] bytes)
 	{

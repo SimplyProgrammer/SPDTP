@@ -9,11 +9,11 @@ public class AsyncTimer
 	protected int timeoutPeriod, timeoutCount = 0, resetCount = 0;
 	protected int remaining;
 
-	protected Action callback;
+	protected Action<AsyncTimer> callback;
 	protected Thread timerThread;
 	protected bool isRunning;
 
-	public AsyncTimer(Action callback, int timeoutPeriod)
+	public AsyncTimer(Action<AsyncTimer> callback, int timeoutPeriod)
 	{
 		this.timeoutPeriod = timeoutPeriod;
 		this.callback = callback;
@@ -41,6 +41,7 @@ public class AsyncTimer
 	{
 		isRunning = false;
 		timerThread?.Join();
+		timerThread = null;
 	}
 
 	public AsyncTimer restart(int remaining = -1, int refreshTimeoutCount = 0)
@@ -54,7 +55,7 @@ public class AsyncTimer
 		return this;
 	}
 
-	public AsyncTimer setTimeout(Action callback, int timeoutPeriod)
+	public AsyncTimer setTimeout(Action<AsyncTimer> callback, int timeoutPeriod)
 	{
 		this.timeoutPeriod = timeoutPeriod;
 		this.callback = callback;
@@ -84,7 +85,7 @@ public class AsyncTimer
 			{
 				timeoutCount++;
 
-				callback.Invoke();
+				callback.Invoke(this);
 				remaining = timeoutPeriod;
 			}
 		}

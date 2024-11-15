@@ -3,7 +3,7 @@ using NullFX.CRC;
 
 public class SpdtpResourceSegment : SpdtpMessage
 {
-	protected int segmentID;
+	protected int segmentID; // 24 bits
 	protected int resourceIdentifier;
 
 	protected byte[] payload;
@@ -22,12 +22,12 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 	public override SpdtpResourceSegment createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceSegment((byte) (getKeepAliveFlag() | STATE_RESPONSE | additionalFlags));
+		return new SpdtpResourceSegment((byte) (STATE_RESPONSE | additionalFlags));
 	}
 
 	public override SpdtpResourceSegment createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceSegment((byte) (getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags));
+		return new SpdtpResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags));
 	}
 
 	public override byte[] getBytes()

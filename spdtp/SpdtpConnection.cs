@@ -38,19 +38,33 @@ public abstract class SpdtpConnection
 		close();
 	}
 
-	public virtual void sendMessageAsync(SpdtpMessage message, bool err = false)
+	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int additionalCount = 0, int period = 5000, bool err = false)
 	{
 		new Thread(() => sendMessage(message, err))
 		{
 			IsBackground = true
 		}.Start();
+
+		if (additionalCount > 0)
+			return new AsyncTimer(self => {
+				if (--additionalCount < 0)
+					self.stop();
+				else
+					sendMessage(message, err);
+			}, period).start();
+
+		return null;
 	}
 
 	public abstract T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage;
 
 	protected abstract void receiveLoop();
 
-	public abstract void handleKeepAlive();
+	public abstract bool attemptResend(SpdtpMessage message);
+
+	public abstract void resetResendAttempts(int to = 0);
+
+	public abstract void handleKeepAlive(AsyncTimer keepAlive);
 
 	public virtual void start()
 	{

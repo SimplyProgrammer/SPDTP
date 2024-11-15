@@ -68,6 +68,6 @@ public class Utils
 		if (input.Length <= maxLength)
 			return input;
 
-		return substitute + input.Substring(input.Length - maxLength + 1);
+		return substitute + input.Substring(input.Length - maxLength + substitute.Length);
 	}
 }

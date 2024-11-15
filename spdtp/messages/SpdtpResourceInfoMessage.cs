@@ -25,12 +25,12 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 
 	public override SpdtpResourceInfoMessage createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceInfoMessage((byte) (getKeepAliveFlag() | STATE_RESPONSE | additionalFlags), getSegmentCount(), getResourceName());
+		return new SpdtpResourceInfoMessage((byte) (STATE_RESPONSE | additionalFlags), getSegmentCount(), getResourceName());
 	}
 
 	public override SpdtpResourceInfoMessage createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceInfoMessage((byte) (getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags));
+		return new SpdtpResourceInfoMessage((byte) (STATE_RESEND_REQUEST | additionalFlags));
 	}
 
 	public override byte[] getBytes()

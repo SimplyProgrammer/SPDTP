@@ -24,12 +24,12 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 
 	public override SpdtpNegotiationMessage createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (getKeepAliveFlag() | STATE_RESPONSE | additionalFlags), getSegmentPayloadSize());
+		return new SpdtpNegotiationMessage((byte) (STATE_RESPONSE | additionalFlags), getSegmentPayloadSize());
 	}
 
 	public override SpdtpNegotiationMessage createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpNegotiationMessage((byte) (getKeepAliveFlag() | STATE_RESEND_REQUEST | additionalFlags));
+		return new SpdtpNegotiationMessage((byte) (STATE_RESEND_REQUEST | additionalFlags));
 	}
 
 	public override byte[] getBytes()
@@ -37,7 +37,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		byte[] bytes = new byte[4];
 		bytes[0] = getMessageFlags();
 
-		Buffer.BlockCopy(Utils.getBytes(segmentPayloadSize), 0, bytes, 1, sizeof(short));
+		Buffer.BlockCopy(Utils.getBytes((ushort) segmentPayloadSize), 0, bytes, 1, sizeof(short));
 		bytes[3] = Crc8.ComputeChecksum(bytes, 0, bytes.Length-1);
 		return bytes;
 	}

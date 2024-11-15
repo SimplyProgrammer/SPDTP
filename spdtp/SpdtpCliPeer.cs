@@ -10,7 +10,7 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The implementation Spdtp with CLI interface as the implementor of SpdtpConnection...
+* The implementation Spdtp peer with CLI interface as the implementor of SpdtpConnection...
 */
 public class SpdtpCliPeer : SpdtpConnection
 {
@@ -97,17 +97,18 @@ public class SpdtpCliPeer : SpdtpConnection
 					}
 
 					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), args.Length > 2 && args[2] == "-e");
+					keepAlive.setTimeout(5000);
 					keepAlive.restart();
 
 					if (session == null)
 					{
-						session = new Session(this, segmentPayloadSize);
-						Console.WriteLine("Session with segment's payload size of " + segmentPayloadSize + " was initiated!");
+						session = new Session(this, pendingNegotiationMessage);
+						Console.WriteLine("Session with segment's payload size of " + pendingNegotiationMessage.getSegmentPayloadSize() + " was initiated!");
 					}
 					else
 					{
-						session.setSegmentPayloadSize(segmentPayloadSize);
-						Console.WriteLine("Session's segment's payload size was updated to " + segmentPayloadSize + "!");
+						session.setMetadata(pendingNegotiationMessage);
+						Console.WriteLine("Session's segment's payload size was updated to " + pendingNegotiationMessage.getSegmentPayloadSize() + "!");
 					}
 				}
 			}
@@ -136,13 +137,10 @@ public class SpdtpCliPeer : SpdtpConnection
 		{
 			try
 			{
-				if (_receiveInterrupt)
-				{
-					Thread.Sleep(90);
-					continue;
-				}
-
 				byte[] rawMsg = udpClient.Receive(ref localSocket);
+				if (_receiveInterrupt)
+					continue;
+
 				// if (rawMsg[0] == '#') // Temp
 				// {
 				// 	Console.WriteLine("Message received: " + Encoding.ASCII.GetString(rawMsg).Substring(1));
@@ -190,12 +188,21 @@ public class SpdtpCliPeer : SpdtpConnection
 		}
 	}
 
-	protected void attemptResendPending()
+	public override bool attemptResend(SpdtpMessage message)
 	{
 		if (resendAttempts++ > 2)
+		{
 			doTerminate("Session and connection terminated (too many transmission errors)!");
-		else
-			sendMessageAsync(pendingNegotiationMessage);
+			return false;
+		}
+		
+		sendMessageAsync(message);
+		return true;
+	}
+
+	public override void resetResendAttempts(int to = 0)
+	{
+		resendAttempts = to;
 	}
 
 	protected bool handleNegotiationMsg(SpdtpNegotiationMessage negotiationMessage)
@@ -208,8 +215,6 @@ public class SpdtpCliPeer : SpdtpConnection
 			return true;
 		}
 
-		keepAlive.setTimeout(5000);
-
 		if (!negotiationMessage.validate())
 		{
 			Console.WriteLine("Erroneous negotiation message was received: " + negotiationMessage + "!");
@@ -219,11 +224,8 @@ public class SpdtpCliPeer : SpdtpConnection
 				sendMessageAsync(negotiationMessage.createResendRequest());
 				Console.WriteLine("Resend requested!");
 			}
-			else
-			{
-				attemptResendPending();
+			else if (attemptResend(pendingNegotiationMessage))
 				Console.WriteLine("Resend performed!");
-			}
 			return true;
 		}
 
@@ -231,33 +233,31 @@ public class SpdtpCliPeer : SpdtpConnection
 		{
 			if (session == null)
 			{
-				session = new Session(this, negotiationMessage.getSegmentPayloadSize());
-				if (negotiationMessage.getKeepAliveFlag() == 0)
-					Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was established with the other peer!");
+				session = new Session(this, negotiationMessage);
+				Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was established with the other peer!");
 			}
-			else
+			else if (session.getMetadata().getSegmentPayloadSize() != negotiationMessage.getSegmentPayloadSize())
 			{
-				session.setSegmentPayloadSize(negotiationMessage.getSegmentPayloadSize());
-				if (negotiationMessage.getKeepAliveFlag() == 0)
-					Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
+				session.setMetadata(negotiationMessage);
+				Console.WriteLine("Session's segment's payload size was adjusted to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
 			}
 
-			sendMessageAsync(negotiationMessage.createResponse(), _testingResponseErrorCount-- > 0);
+			keepAlive.setTimeout(5000);
+			sendMessageAsync(negotiationMessage.createResponse(), 0, 0, _testingResponseErrorCount-- > 0);
 			// Console.WriteLine(msg);
 			return true;
 		}
 
 		if (negotiationMessage.isState(STATE_RESPONSE))
 		{
-			if (session != null && negotiationMessage.getSegmentPayloadSize() != session.getSegmentPayloadSize())
+			if (session != null && negotiationMessage.getSegmentPayloadSize() != session.getMetadata().getSegmentPayloadSize())
 			{
-				session.setSegmentPayloadSize(negotiationMessage.getSegmentPayloadSize());
-				if (negotiationMessage.getKeepAliveFlag() == 0)
-					Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
+				session.setMetadata(negotiationMessage);
+				Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
 			}
 
 			pendingNegotiationMessage = null;
-			resendAttempts = 0;
+			resetResendAttempts();
 			return true;
 		}
 
@@ -266,21 +266,23 @@ public class SpdtpCliPeer : SpdtpConnection
 			if (pendingNegotiationMessage == null)
 				Console.WriteLine("Nothing to resend...");
 			else
-				attemptResendPending();
+				attemptResend(pendingNegotiationMessage);
 			return true;
 		}
 
 		return false;
 	}
 
-	public override void handleKeepAlive()
+	public override void handleKeepAlive(AsyncTimer keepAlive)
 	{
 		// Console.WriteLine("Keep alive" + keepAlive.getTimeoutCount());
 		if (keepAlive.getTimeoutCount() > 3)
 			doTerminate("Session and connection terminated (timeout)!");
 		else if (session != null)
 		{
-			pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage((byte) (KEEP_ALIVE | STATE_REQUEST), session.getSegmentPayloadSize()));
+			if (pendingNegotiationMessage != null)
+				Console.WriteLine("Keep alive missed by the other peer...");
+			pendingNegotiationMessage = sendMessage(session.getMetadata());
 		}
 		else
 			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated soon!");
