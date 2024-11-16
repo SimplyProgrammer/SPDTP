@@ -14,17 +14,20 @@ using static SpdtpNegotiationMessage;
 */
 public class SpdtpCliPeer : SpdtpConnection
 {
+	public static readonly int KEEP_ALIVE_ATTEMPTS = 3;
+	public static readonly int ACCEPTABLE_ERR_COUNT = 2;
+
 	public bool verbose = false;
 
 	protected SpdtpNegotiationMessage pendingNegotiationMessage;
-	protected int resendAttempts = 0;
+	protected int resendErrAttempts = 0;
 
 	protected bool _receiveInterrupt;
 	protected int _testingResponseErrorCount = 0;
 
-	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket)
+	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket, 30000)
 	{
-		keepAlive = new AsyncTimer(handleKeepAlive, 30000).start();
+		keepAlive.start();
 	}
 
 	protected void sendLoop()
@@ -61,8 +64,12 @@ public class SpdtpCliPeer : SpdtpConnection
 				else if (userInput.StartsWith("#")) // Temp
 				{
 					if (session == null)
+					{
 						Console.WriteLine("Session is was not opened (null)!");
-					else if (userInput.Length > 1 && userInput[1] == '!')
+						continue;
+					}
+
+					if (userInput.Length > 1 && userInput[1] == '!')
 					{
 						FileStream resource = File.Open(userInput = userInput.Substring(2), FileMode.Open, FileAccess.Read);
 						
@@ -77,6 +84,8 @@ public class SpdtpCliPeer : SpdtpConnection
 						byte[] bytes = Encoding.ASCII.GetBytes(userInput = userInput.Substring(1));
 						session.sendResource(bytes, userInput);
 					}
+
+					keepAlive.restart();
 				}
 				else if (userInput.StartsWith("disc"))
 				{
@@ -96,20 +105,7 @@ public class SpdtpCliPeer : SpdtpConnection
 						segmentPayloadSize = short.Parse(Console.ReadLine());
 					}
 
-					pendingNegotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), args.Length > 2 && args[2] == "-e");
-					keepAlive.setTimeout(5000);
-					keepAlive.restart();
-
-					if (session == null)
-					{
-						session = new Session(this, pendingNegotiationMessage);
-						Console.WriteLine("Session with segment's payload size of " + pendingNegotiationMessage.getSegmentPayloadSize() + " was initiated!");
-					}
-					else
-					{
-						session.setMetadata(pendingNegotiationMessage);
-						Console.WriteLine("Session's segment's payload size was updated to " + pendingNegotiationMessage.getSegmentPayloadSize() + "!");
-					}
+					pendingNegotiationMessage = openSession(segmentPayloadSize, 5000, args.Length > 2 && args[2] == "-e");
 				}
 			}
 			catch (Exception ex)
@@ -190,7 +186,7 @@ public class SpdtpCliPeer : SpdtpConnection
 
 	public override bool attemptResend(SpdtpMessage message)
 	{
-		if (resendAttempts++ > 2)
+		if (resendErrAttempts++ > ACCEPTABLE_ERR_COUNT)
 		{
 			doTerminate("Session and connection terminated (too many transmission errors)!");
 			return false;
@@ -202,7 +198,7 @@ public class SpdtpCliPeer : SpdtpConnection
 
 	public override void resetResendAttempts(int to = 0)
 	{
-		resendAttempts = to;
+		resendErrAttempts = to;
 	}
 
 	protected bool handleNegotiationMsg(SpdtpNegotiationMessage negotiationMessage)
@@ -276,7 +272,7 @@ public class SpdtpCliPeer : SpdtpConnection
 	public override void handleKeepAlive(AsyncTimer keepAlive)
 	{
 		// Console.WriteLine("Keep alive" + keepAlive.getTimeoutCount());
-		if (keepAlive.getTimeoutCount() > 3)
+		if (keepAlive.getTimeoutCount() > KEEP_ALIVE_ATTEMPTS)
 			doTerminate("Session and connection terminated (timeout)!");
 		else if (session != null)
 		{

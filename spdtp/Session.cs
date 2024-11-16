@@ -1,13 +1,13 @@
 using System;
+using System.Net.Http.Headers;
 using static SpdtpMessage;
+using static SpdtpResourceInfoMessage;
 
 /**
 * This class represents the established session where the real communication is handled...
 */
 public class Session
 {
-	public static readonly String TEXT_MSG_MARK = new String(new char[] {(char) 1, (char) 3, (char) 2,});
-
 	protected SpdtpNegotiationMessage metadata;
 
 	protected SpdtpConnection connection;
@@ -15,6 +15,7 @@ public class Session
 	protected Dictionary<int, ResourceTransmission> transmissions = new Dictionary<int, ResourceTransmission>();
 
 	protected SpdtpResourceInfoMessage pendingResourceInfoMessage;
+	protected AsyncTimer pendingResourceInfoResender;
 
 	public Session(SpdtpConnection connection, SpdtpNegotiationMessage openingMetadata)
 	{
@@ -22,27 +23,63 @@ public class Session
 		this.connection = connection;
 	}
 
-	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
+	protected void handlePendingResourceInfoTimeout(AsyncTimer resender)
 	{
+		int resourceIdentifier = pendingResourceInfoMessage.getResourceIdentifier();
+		Console.WriteLine(pendingResourceInfoMessage + " (" + resourceIdentifier + ") - Pending resource info timed out, transmission aborted!");
+		Console.WriteLine(transmissions.Remove(resourceIdentifier) ? "Resources deallocated!" : "Resources not present (already deallocated)!");
+	}
+
+	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor, bool err = false)
+	{
+		if (pendingResourceInfoMessage != null)
+		{
+			Console.WriteLine(pendingResourceInfoMessage + " is pending, please wait before sending another!");
+			return null;
+		}
+
+		int segmentCount;
 		if (resourceDescriptor is FileStream)
 		{
-			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1, Utils.truncString(((FileStream) resourceDescriptor).Name, 60));
-
-			connection.sendMessageAsync(pendingResourceInfoMessage);
-			return pendingResourceInfoMessage;
+			segmentCount = (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1;
+			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resourceDescriptor).Name, 64));
 		}
-
-		if (resourceDescriptor is String)
+		else if (resourceDescriptor is String)
 		{
-			pendingResourceInfoMessage = resourceBytes.Length <= 60 ? 
-				new SpdtpResourceInfoMessage(STATE_REQUEST, 0, resourceDescriptor.ToString()) :
-				new SpdtpResourceInfoMessage(STATE_REQUEST, (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
+			if (resourceBytes.Length <= 64)
+			{
+				pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, 0, resourceDescriptor.ToString());
 
-			connection.sendMessageAsync(pendingResourceInfoMessage);
-			return pendingResourceInfoMessage;
+				connection.sendMessageAsync(pendingResourceInfoMessage, 0, 0, err).setOnStopCallback(handlePendingResourceInfoTimeout);
+				return pendingResourceInfoMessage;
+			}
+			
+			segmentCount = (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1;
+			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
+		}
+		else
+		{
+			Console.WriteLine(resourceDescriptor?.GetType() + " is unsupported!");
+			return null;
 		}
 
-		return null;
+		int resourceIdentifier = pendingResourceInfoMessage.getResourceIdentifier();
+		try 
+		{
+			var transmission = new ResourceTransmission(connection, pendingResourceInfoMessage, new SpdtpResourceSegment[segmentCount]);
+			transmissions.Add(resourceIdentifier, transmission);
+			transmission.initializeResourceTransmission(resourceBytes, metadata.getSegmentPayloadSize());
+
+			pendingResourceInfoResender = connection.sendMessageAsync(pendingResourceInfoMessage, 2, 5000, err).setOnStopCallback(handlePendingResourceInfoTimeout);
+
+			Console.WriteLine("Informing the other peer about incoming: " + pendingResourceInfoMessage.getResourceName() + " (" + resourceIdentifier + ")!");
+		}
+		catch (ArgumentException ex)
+		{
+			Console.WriteLine("Resource (" + resourceIdentifier + ") was already initialized!");
+		}
+
+		return pendingResourceInfoMessage;
 	}
 
 	public bool handleIncomingResourceMsg(SpdtpResourceInfoMessage incomingResourceMsg)
@@ -64,6 +101,8 @@ public class Session
 		if (incomingResourceMsg.isState(STATE_REQUEST))
 		{
 			// TODO - initialize resources
+
+			return true;
 		}
 
 		if (incomingResourceMsg.isState(STATE_RESPONSE))
@@ -71,6 +110,7 @@ public class Session
 			// TODO - start transmission
 
 			pendingResourceInfoMessage = null;
+			pendingResourceInfoResender.stop(false);
 			connection.resetResendAttempts();
 			return true;
 		}

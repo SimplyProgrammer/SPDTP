@@ -8,13 +8,17 @@ using System.Text;
 */
 public class SpdtpResourceInfoMessage : SpdtpMessage
 {
+	public static readonly String TEXT_MSG_MARK = new String(new char[] {(char) 1, (char) 3, (char) 2,});
+
 	protected int segmentCount; // 24 bits
 	protected String resourceName;
+	protected int resourceIdentifier; // Cache...
 
 	public SpdtpResourceInfoMessage(byte additionalMessageFlags = 0, int segmentCount = 0, String resourceName = "") : base((byte) (additionalMessageFlags | INCOMING_RESOURCE_INFO), INCOMING_RESOURCE_INFO)
 	{
 		setSegmentCount(segmentCount);
 		setResourceName(resourceName);
+
 		// this.checksum = checksum;
 	}
 
@@ -54,8 +58,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 
 		setSegmentCount(Utils.getInt24(bytes, 1));
 
-		resourceName = Encoding.ASCII.GetString(bytes, 4, bytes.Length-6);
-
+		setResourceName(Encoding.ASCII.GetString(bytes, 4, bytes.Length-6));
 		isValid = Crc16.ComputeChecksum(Crc16Algorithm.Standard, bytes, 0, bytes.Length-2) == Utils.getShort(bytes, bytes.Length-2);
 		return this;
 	}
@@ -75,8 +78,15 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 		return resourceName;
 	}
 
+	public int getResourceIdentifier()
+	{
+		return resourceIdentifier;
+	}
+
 	public void setResourceName(String resourceName)
 	{
 		this.resourceName = resourceName;
+		resourceIdentifier = resourceName.GetHashCode();
+
 	}
 }

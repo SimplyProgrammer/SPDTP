@@ -1,4 +1,7 @@
 
+
+using System.Reflection.Metadata.Ecma335;
+
 /**
 * Used for time intervals and timeouts...
 */
@@ -9,7 +12,7 @@ public class AsyncTimer
 	protected int timeoutPeriod, timeoutCount = 0, resetCount = 0;
 	protected int remaining;
 
-	protected Action<AsyncTimer> callback;
+	protected Action<AsyncTimer> callback, onStop;
 	protected Thread timerThread;
 	protected bool isRunning;
 
@@ -37,11 +40,13 @@ public class AsyncTimer
 		return this;
 	}
 
-	public void stop()
+	public void stop(bool join = true, bool invokeOnStop = false)
 	{
 		isRunning = false;
-		timerThread?.Join();
-		timerThread = null;
+		if (join)
+			timerThread?.Join();
+		if (invokeOnStop)
+			onStop?.Invoke(this);
 	}
 
 	public AsyncTimer restart(int remaining = -1, int refreshTimeoutCount = 0)
@@ -69,6 +74,12 @@ public class AsyncTimer
 		if (timeoutPeriod < remaining)
 			remaining = timeoutPeriod;
 
+		return this;
+	}
+
+	public AsyncTimer setOnStopCallback(Action<AsyncTimer> callback)
+	{
+		onStop = callback;
 		return this;
 	}
 

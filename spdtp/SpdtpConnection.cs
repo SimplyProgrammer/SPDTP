@@ -22,12 +22,34 @@ public abstract class SpdtpConnection
 	protected Session session;
 	protected AsyncTimer keepAlive;
 
-	public SpdtpConnection(IPEndPoint localSocket, IPEndPoint remoteSocket)
+	public SpdtpConnection(IPEndPoint localSocket, IPEndPoint remoteSocket, int keepAlivePeriod)
 	{
 		this.localSocket = localSocket;
 		this.remoteSocket = remoteSocket;
 
 		udpClient = new UdpClient(localSocket);
+
+		keepAlive = new AsyncTimer(handleKeepAlive, keepAlivePeriod);
+	}
+
+	public virtual SpdtpNegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000, bool err = false)
+	{
+		var negotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), err);
+		keepAlive.setTimeout(newKeepAlivePeriod);
+		keepAlive.restart();
+
+		if (session == null)
+		{
+			session = new Session(this, negotiationMessage);
+			Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " was initiated!");
+		}
+		else
+		{
+			session.setMetadata(negotiationMessage);
+			Console.WriteLine("Session's segment's payload size was updated to " + negotiationMessage.getSegmentPayloadSize() + "!");
+		}
+
+		return negotiationMessage;
 	}
 
 	public virtual void doTerminate(String msg = "Session and connection terminated!")
@@ -38,19 +60,24 @@ public abstract class SpdtpConnection
 		close();
 	}
 
-	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int additionalCount = 0, int period = 5000, bool err = false)
+	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int reattemptCount = 0, int period = 5000, bool err = false)
 	{
 		new Thread(() => sendMessage(message, err))
 		{
 			IsBackground = true
 		}.Start();
 
-		if (additionalCount > 0)
-			return new AsyncTimer(self => {
-				if (--additionalCount < 0)
-					self.stop();
+		if (reattemptCount > 0)
+			return new AsyncTimer(self => 
+			{
+				if (self.getTimeoutCount() > reattemptCount)
+					self.stop(false, true);
 				else
+				{
 					sendMessage(message, err);
+					keepAlive.restart();
+				}
+
 			}, period).start();
 
 		return null;
@@ -64,7 +91,7 @@ public abstract class SpdtpConnection
 
 	public abstract void resetResendAttempts(int to = 0);
 
-	public abstract void handleKeepAlive(AsyncTimer keepAlive);
+	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, SpdtpMessage keepAliveMessage*/);
 
 	public virtual void start()
 	{

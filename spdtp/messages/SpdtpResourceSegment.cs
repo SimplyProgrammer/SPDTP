@@ -15,10 +15,12 @@ public class SpdtpResourceSegment : SpdtpMessage
 		setPayload(payload);
 	}
 
-	// public override string ToString()
-	// {
-	// 	return GetType().Name + "[" + messageFlags + ", " + segmentCount + "]";
-	// }
+	public override string ToString()
+	{
+		if (payload != null)
+			return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + ", payload(" + payload.Length + ")]";
+		return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + "]";
+	}
 
 	public override SpdtpResourceSegment createResponse(byte additionalFlags = 0)
 	{
