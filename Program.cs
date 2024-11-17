@@ -22,7 +22,7 @@ public class Program
 	// 	return null;
 	// }
 
-	public static void Main(string[] args)
+	public static void test()
 	{
 		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
 		
@@ -56,6 +56,11 @@ public class Program
 		// Console.WriteLine(Utils.formatHeader(newHeader));
 		
 		// Console.WriteLine(newSpdtpMessage);
+	}
+
+	public static void Main(string[] args)
+	{
+		// test();
 
 		// AsyncTimer timer = new AsyncTimer(() => Console.WriteLine("haha"), 3000).start();
 
@@ -96,7 +101,7 @@ public class Program
 					remoteIpAndPort[0] = "127.0.0.1";
 				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));
 
-				var peer = new SpdtpCliPeer(localPoint, remotePoint);
+				var peer = new CliPeer(localPoint, remotePoint);
 				peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");
 				peer.start();
 			}

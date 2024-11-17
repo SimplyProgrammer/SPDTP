@@ -22,8 +22,15 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 		// this.checksum = checksum;
 	}
 
-	public override string ToString()
+	public override String ToString()
 	{
+		return ToString(false);
+	}
+
+	public String ToString(bool shortened)
+	{
+		if (shortened)
+			return "[" + getResourceName() + " (" + resourceIdentifier + ")]";
 		return GetType().Name + "[" + messageFlags + ", " + segmentCount + ", " + resourceName + "]";
 	}
 
@@ -86,7 +93,6 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 	public void setResourceName(String resourceName)
 	{
 		this.resourceName = resourceName;
-		resourceIdentifier = resourceName.GetHashCode();
-
+		resourceIdentifier = resourceName == null ? 0 : resourceName.GetHashCode();
 	}
 }

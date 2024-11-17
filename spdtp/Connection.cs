@@ -9,9 +9,9 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The abstraction of SpdtpConnection (peer)
+* The abstraction of Connection (peer)
 */
-public abstract class SpdtpConnection
+public abstract class Connection
 {
 	protected UdpClient udpClient;
 	protected IPEndPoint remoteSocket;
@@ -22,7 +22,7 @@ public abstract class SpdtpConnection
 	protected Session session;
 	protected AsyncTimer keepAlive;
 
-	public SpdtpConnection(IPEndPoint localSocket, IPEndPoint remoteSocket, int keepAlivePeriod)
+	public Connection(IPEndPoint localSocket, IPEndPoint remoteSocket, int keepAlivePeriod)
 	{
 		this.localSocket = localSocket;
 		this.remoteSocket = remoteSocket;

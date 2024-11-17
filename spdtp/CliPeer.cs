@@ -10,9 +10,9 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The implementation Spdtp peer with CLI interface as the implementor of SpdtpConnection...
+* The implementation Spdtp peer with CLI interface as the implementor of Connection...
 */
-public class SpdtpCliPeer : SpdtpConnection
+public class CliPeer : Connection
 {
 	public static readonly int KEEP_ALIVE_ATTEMPTS = 3;
 	public static readonly int ACCEPTABLE_ERR_COUNT = 2;
@@ -25,7 +25,7 @@ public class SpdtpCliPeer : SpdtpConnection
 	protected bool _receiveInterrupt;
 	protected int _testingResponseErrorCount = 0;
 
-	public SpdtpCliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket, 30000)
+	public CliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket, 30000)
 	{
 		keepAlive.start();
 	}
