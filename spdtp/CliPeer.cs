@@ -23,7 +23,8 @@ public class CliPeer : Connection
 	protected int resendErrAttempts = 0;
 
 	protected bool _receiveInterrupt;
-	protected int _testingResponseErrorCount = 0;
+	internal int _testingResponseErrorCount = 0;
+	// protected int _interruptedLatency = 0;
 
 	public CliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket, 30000)
 	{
@@ -55,6 +56,10 @@ public class CliPeer : Connection
 				}
 				else if (userInput.StartsWith("-interr"))
 				{
+					// String[] args = userInput.Split(' ');
+					// if (args.Length > 1)
+					// 	_interruptedLatency = int.Parse(args[1]);
+
 					if (_receiveInterrupt ^= true)
 						keepAlive.stop();
 					else
@@ -69,20 +74,21 @@ public class CliPeer : Connection
 						continue;
 					}
 
+					String[] args = userInput.Split(' ');
 					if (userInput.Length > 1 && userInput[1] == '!')
 					{
 						FileStream resource = File.Open(userInput = userInput.Substring(2), FileMode.Open, FileAccess.Read);
 						
 						byte[] bytes = new byte[userInput.Length];
 						resource.Read(bytes, 0, bytes.Length);
-						session.sendResource(bytes, resource);
+						session.sendResource(bytes, resource, args.Length > 1 && args[1] == "-e");
 
 						resource.Close();
 					}
 					else
 					{
 						byte[] bytes = Encoding.ASCII.GetBytes(userInput = userInput.Substring(1));
-						session.sendResource(bytes, userInput);
+						session.sendResource(bytes, userInput, args.Length > 1 && args[1] == "-e");
 					}
 
 					keepAlive.restart();
@@ -94,7 +100,7 @@ public class CliPeer : Connection
 				}
 				else if (userInput.StartsWith("op"))
 				{
-					String[] args = userInput.Split(" ");
+					String[] args = userInput.Split(' ');
 
 					short segmentPayloadSize;
 					if (args.Length > 1)
@@ -105,7 +111,17 @@ public class CliPeer : Connection
 						segmentPayloadSize = short.Parse(Console.ReadLine());
 					}
 
+					if (segmentPayloadSize < 1)
+					{
+						Console.WriteLine("Segment's payload size must be at least 1 byte (recommended: 10+)!");
+						continue;
+					}
+
 					pendingNegotiationMessage = openSession(segmentPayloadSize, 5000, args.Length > 2 && args[2] == "-e");
+					if (segmentPayloadSize < 10)
+						Console.WriteLine("Warning: Segment's payload size is too small for any reasonable communication. Consider setting it to at least 10 bytes!");
+					else if (segmentPayloadSize > MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE)
+						Console.WriteLine("Warning: Segment's payload size is too big and lower layer fragmentation can be expected, reducing the performance! Consider setting it to no more than " + MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE + "!");
 				}
 			}
 			catch (Exception ex)
@@ -136,12 +152,6 @@ public class CliPeer : Connection
 				byte[] rawMsg = udpClient.Receive(ref localSocket);
 				if (_receiveInterrupt)
 					continue;
-
-				// if (rawMsg[0] == '#') // Temp
-				// {
-				// 	Console.WriteLine("Message received: " + Encoding.ASCII.GetString(rawMsg).Substring(1));
-				// 	continue;
-				// }
 
 				SpdtpMessage spdtpMessage = newMessageFromBytes(rawMsg);
 				keepAlive.restart();

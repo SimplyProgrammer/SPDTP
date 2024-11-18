@@ -58,7 +58,7 @@ public class Session
 		}
 		else
 		{
-			Console.WriteLine(resourceDescriptor?.GetType() + " is unsupported!");
+			Console.WriteLine(resourceDescriptor?.GetType().Name + " is unsupported!");
 			return null;
 		}
 
@@ -110,7 +110,7 @@ public class Session
 				Console.WriteLine("Resource for " + pendingResourceInfoMessage.ToString(true) + " was already initialized, waiting for incoming transmission!");
 			}
 
-			connection.sendMessageAsync(incomingResourceMsg.createResponse());
+			connection.sendMessageAsync(incomingResourceMsg.createResponse(), 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0);
 			return true;
 		}
 

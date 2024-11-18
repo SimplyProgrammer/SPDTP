@@ -86,7 +86,7 @@ public class Program
 				if (localSocketAddress?.ToLower() == "exit")
 					break;
 		
-				String[] localIpAndPort = localSocketAddress.Split(":");
+				String[] localIpAndPort = localSocketAddress.Split(':');
 				if (localIpAndPort[0].Length < 1)
 					localIpAndPort[0] = "127.0.0.1";
 				IPEndPoint localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(localIpAndPort[1]));
@@ -96,7 +96,7 @@ public class Program
 				if (remoteSocketAddress?.ToLower() == "exit")
 					break;
 
-				String[] remoteIpAndPort = remoteSocketAddress.Split(":");
+				String[] remoteIpAndPort = remoteSocketAddress.Split(':');
 				if (remoteIpAndPort[0].Length < 1)
 					remoteIpAndPort[0] = "127.0.0.1";
 				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));

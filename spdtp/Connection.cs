@@ -13,6 +13,8 @@ using static SpdtpNegotiationMessage;
 */
 public abstract class Connection
 {
+	public static readonly short MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE = 1460;
+
 	protected UdpClient udpClient;
 	protected IPEndPoint remoteSocket;
 	protected IPEndPoint localSocket;
