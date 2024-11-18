@@ -37,13 +37,13 @@ public class CliPeer : Connection
 		if (session != null)
 		{
 			str += "Session was opened with segment's payload size of " + session.getMetadata().getSegmentPayloadSize() + " bytes!\n";
-			str += "Type 'open' to open the change the  segment's payload of the session!\n";
+			str += "Type 'open' to change the segment's payload size of the session!\n";
 			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
 		}
 		else
 		{
-			str += "Type 'open' to open the change the  segment's payload of the session!\n";
+			str += "Type 'open' to open the communication session with specified segment's payload size!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
 			str += "Type ? to see help...\n";
 		}
