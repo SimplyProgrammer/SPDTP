@@ -99,7 +99,9 @@ public class Program
 				String[] remoteIpAndPort = remoteSocketAddress.Split(':');
 				if (remoteIpAndPort[0].Length < 1)
 					remoteIpAndPort[0] = "127.0.0.1";
-				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(remoteIpAndPort[1]));
+
+				int remotePort = remoteIpAndPort[1].StartsWith("+") ? short.Parse(localIpAndPort[1])+1 : (remoteIpAndPort[1].StartsWith("-") ? short.Parse(localIpAndPort[1])-1 : short.Parse(remoteIpAndPort[1]));
+				IPEndPoint remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), remotePort);
 
 				var peer = new CliPeer(localPoint, remotePoint);
 				peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");

@@ -31,15 +31,39 @@ public class CliPeer : Connection
 		keepAlive.start();
 	}
 
+	protected String getHelp()
+	{
+		String str = "Connection " + this + " is pending!\n";
+		if (session != null)
+		{
+			str += "Session was opened with segment's payload size of " + session.getMetadata().getSegmentPayloadSize() + " bytes!\n";
+			str += "Type 'open' to open the change the  segment's payload of the session!\n";
+			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
+			str += "Type 'disc' to terminate the session and connection!\n";
+		}
+		else
+		{
+			str += "Type 'open' to open the change the  segment's payload of the session!\n";
+			str += "Type 'disc' to terminate the session and connection!\n";
+			str += "Type ? to see help...\n";
+		}
+
+		return str;
+	}
+
 	protected void sendLoop()
 	{
-		Console.WriteLine("Your connection is pending!\nType 'open' to open the communication session!\nType # something to send a textual message!");
+		Console.WriteLine(getHelp());
 		while (isRunning)
 		{
 			try 
 			{
 				String userInput = Console.ReadLine();
-				if (userInput.Length > 2 && userInput.StartsWith("-er"))
+				if (userInput.Equals("?"))
+				{
+					Console.WriteLine(getHelp());
+				}
+				else if (userInput.Length > 2 && userInput.StartsWith("-er"))
 				{
 					try
 					{

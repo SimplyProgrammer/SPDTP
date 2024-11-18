@@ -34,6 +34,11 @@ public abstract class Connection
 		keepAlive = new AsyncTimer(handleKeepAlive, keepAlivePeriod);
 	}
 
+	public override string ToString()
+	{
+		return GetType().Name + "[" + this.localSocket.ToString() + " <-> " + this.remoteSocket.ToString() + "]";
+	}
+
 	public virtual SpdtpNegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000, bool err = false)
 	{
 		var negotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), err);
