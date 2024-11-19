@@ -160,4 +160,9 @@ public class Session
 	{
 		metadata = newMetadata;
 	}
+
+	public Dictionary<int, ResourceTransmission> getTransmissions()
+	{
+		return transmissions;
+	}
 }

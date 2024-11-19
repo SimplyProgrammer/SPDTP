@@ -33,13 +33,15 @@ public class CliPeer : Connection
 
 	protected String getHelp()
 	{
-		String str = "Connection " + this + " is pending!\n";
+		String str = "Connection " + this + " is established!\n";
 		if (session != null)
 		{
 			str += "Session was opened with segment's payload size of " + session.getMetadata().getSegmentPayloadSize() + " bytes!\n";
 			str += "Type 'open' to change the segment's payload size of the session!\n";
 			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
+
+			str += "Transmissions: " + session.getTransmissions() + "\n";
 		}
 		else
 		{
