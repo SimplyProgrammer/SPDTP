@@ -27,14 +27,14 @@ public class ResourceTransmission
 	{
 		String str = GetType().Name + "[" + processedSegmentCount + "/" + expectedSegmentCount + " |\n";
 		for (int i = 0; i < segments.Length; i++)
-			str += segments[i].ToString();
+			str += "\t" + segments[i] == null ? "null" : segments[i];
 
-		return str + "]";
+		return str + "\n]";
 	}
 
 	public void initiateTransmission()
 	{
-		Console.WriteLine(ToString());
+		Console.WriteLine(">" + ToString());
 		// for (int i = 0; i < expectedSegmentCount; i++)
 		// {
 		// 	// TODO

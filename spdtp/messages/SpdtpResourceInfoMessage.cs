@@ -30,7 +30,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 	public String ToString(bool shortened)
 	{
 		if (shortened)
-			return "[" + getResourceName() + " (" + resourceIdentifier + ")]";
+			return "[" + getResourceName() + " | (" + resourceIdentifier + ")]";
 		return GetType().Name + "[" + messageFlags + ", " + segmentCount + ", " + resourceName + "]";
 	}
 

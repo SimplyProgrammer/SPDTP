@@ -36,7 +36,14 @@ public class Utils
 		return (bytes[from] << 16) | (bytes[from+1] << 8) | bytes[from+2];
 	}
 
-	public static String formatHeader(byte[] bytes, int cols = 4)
+	public static int getHashIdentifier(String str, int hash = 7)
+	{
+		for (int i = 0, len = str.Length; i < len; i++)
+			hash = hash*31 + str[i];
+		return hash;
+	}
+
+	public static String formatHeader(byte[] bytes, int cols = 4) // TODO impl
 	{
 		String formatted = "";
 

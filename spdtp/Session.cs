@@ -103,11 +103,11 @@ public class Session
 				var transmission = new ResourceTransmission(connection, incomingResourceMsg, new SpdtpResourceSegment[incomingResourceMsg.getSegmentCount()]);
 				transmissions.Add(incomingResourceMsg.getResourceIdentifier(), transmission);
 
-				Console.WriteLine("Resource for " + pendingResourceInfoMessage.ToString(true) + " were initialized successfully, ready for incoming transmission!");
+				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " were initialized successfully, ready for incoming transmission!");
 			}
 			catch (ArgumentException ex)
 			{
-				Console.WriteLine("Resource for " + pendingResourceInfoMessage.ToString(true) + " was already initialized, waiting for incoming transmission!");
+				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " was already initialized, waiting for incoming transmission!");
 			}
 
 			connection.sendMessageAsync(incomingResourceMsg.createResponse(), 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0);

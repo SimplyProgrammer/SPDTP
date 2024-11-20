@@ -11,9 +11,9 @@ public abstract class SpdtpMessage
 
 	// public static readonly byte KEEP_ALIVE = 0b0010_0000;
 
-	public static readonly byte STATE_RESEND_REQUEST = 0;
-	public static readonly byte STATE_REQUEST = 1;
-	public static readonly byte STATE_RESPONSE = 2;
+	public static readonly byte STATE_RESEND_REQUEST = 0; //NACK
+	public static readonly byte STATE_REQUEST = 1; //SYN
+	public static readonly byte STATE_RESPONSE = 2; //ACK
 
 	protected byte messageFlags, type;
 

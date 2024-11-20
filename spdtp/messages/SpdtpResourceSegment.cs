@@ -29,19 +29,54 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 	public override SpdtpResourceSegment createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags));
+		return new SpdtpResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags), getSegmentID(), getResourceIdentifier());
 	}
+
+	// TODO test
 
 	public override byte[] getBytes()
 	{
-		byte[] bytes = new byte[123];
+		bool hasPayload = payload != null && payload.Length > 0;
+		byte[] bytes = new byte[hasPayload ? 8+4+payload.Length : 8+2];
 
+		bytes[0] = getMessageFlags();
+
+		Buffer.BlockCopy(Utils.getBytes(segmentID), 1, bytes, 1, 3);
+
+		Buffer.BlockCopy(Utils.getBytes(resourceIdentifier), 0, bytes, 4, 4);
+
+		if (hasPayload)
+		{
+			Buffer.BlockCopy(payload, 0, bytes, 8, payload.Length);
+
+			var crc32 = Crc32.ComputeChecksum(bytes, 0, bytes.Length-4);
+			Buffer.BlockCopy(Utils.getBytes((int) crc32), 0, bytes, bytes.Length-4, 4);
+			return bytes;
+		}
+		
+		var crc16 = Crc16.ComputeChecksum(Crc16Algorithm.Standard, bytes, 0, bytes.Length-4);
+		Buffer.BlockCopy(Utils.getBytes(crc16), 0, bytes, bytes.Length-2, 2);
 		return bytes;
 	}
 
 	public override SpdtpMessage setFromBytes(byte[] bytes)
 	{
-		// TODO
+		messageFlags = bytes[0];
+
+		setSegmentID(Utils.getInt24(bytes, 1));
+
+		setResourceIdentifier(Utils.getInt(bytes, 4));
+
+		if (bytes.Length > 10) // Has payload
+		{
+			payload = new byte[bytes.Length-10];
+			Buffer.BlockCopy(bytes, 8, bytes, 0, payload.Length);
+
+			isValid = Crc32.ComputeChecksum(bytes, 0, bytes.Length-2) == (uint) Utils.getInt(bytes, bytes.Length-2);
+			return this;
+		}
+
+		isValid = Crc16.ComputeChecksum(Crc16Algorithm.Standard, bytes, 0, bytes.Length-2) == Utils.getShort(bytes, bytes.Length-2);
 		return this;
 	}
 

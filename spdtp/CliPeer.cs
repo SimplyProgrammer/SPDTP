@@ -21,6 +21,7 @@ public class CliPeer : Connection
 
 	protected SpdtpNegotiationMessage pendingNegotiationMessage;
 	protected int resendErrAttempts = 0;
+	protected int standardKeepAlivePeriod = 5000;
 
 	protected bool _receiveInterrupt;
 	internal int _testingResponseErrorCount = 0;
@@ -41,7 +42,14 @@ public class CliPeer : Connection
 			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
 
-			str += "Transmissions: " + session.getTransmissions() + "\n";
+			str += "Transmissions: {\n";
+
+			foreach(KeyValuePair<int, ResourceTransmission> entry in session.getTransmissions())
+			{
+				str += entry.Key + ": " + entry.Value + "\n";
+			}
+
+			str += "}";
 		}
 		else
 		{
@@ -61,6 +69,9 @@ public class CliPeer : Connection
 			try 
 			{
 				String userInput = Console.ReadLine();
+				if (userInput.Length < 1)
+					continue;
+
 				if (userInput.Equals("?"))
 				{
 					Console.WriteLine(getHelp());
@@ -75,6 +86,31 @@ public class CliPeer : Connection
 					{
 						Console.Error.WriteLine("Error has occurred: " + ex);
 					}
+				}
+				else if (userInput.StartsWith("-kpal-per"))
+				{
+					String[] args = userInput.Split(' ');
+
+					int newKpAlivePeriod = 0;
+					try
+					{
+						newKpAlivePeriod = int.Parse(args[1]);
+						if (newKpAlivePeriod < 1)
+							newKpAlivePeriod = standardKeepAlivePeriod;
+					}
+					catch (Exception ex)
+					{}
+
+					Console.WriteLine(newKpAlivePeriod);
+					keepAlive.setTimeout(standardKeepAlivePeriod = newKpAlivePeriod);
+				}
+				else if (userInput.StartsWith("-kpal-rest"))
+				{
+					keepAlive.restart();
+				}
+				else if (userInput.StartsWith("-cls-res"))
+				{
+					session.getTransmissions().Clear();
 				}
 				else if (userInput.StartsWith("-verbo"))
 				{
@@ -92,6 +128,7 @@ public class CliPeer : Connection
 						keepAlive.start();
 					Console.WriteLine(_receiveInterrupt);
 				}
+
 				else if (userInput.StartsWith("#")) // Temp
 				{
 					if (session == null)
@@ -143,12 +180,14 @@ public class CliPeer : Connection
 						continue;
 					}
 
-					pendingNegotiationMessage = openSession(segmentPayloadSize, 5000, args.Length > 2 && args[2] == "-e");
+					pendingNegotiationMessage = openSession(segmentPayloadSize, standardKeepAlivePeriod, args.Length > 2 && args[2] == "-e");
 					if (segmentPayloadSize < 10)
 						Console.WriteLine("Warning: Segment's payload size is too small for any reasonable communication. Consider setting it to at least 10 bytes!");
 					else if (segmentPayloadSize > MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE)
 						Console.WriteLine("Warning: Segment's payload size is too big and lower layer fragmentation can be expected, reducing the performance! Consider setting it to no more than " + MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE + "!");
 				}
+				else
+					Console.WriteLine("Unknown! Please type  ?");
 			}
 			catch (Exception ex)
 			{
@@ -274,7 +313,7 @@ public class CliPeer : Connection
 				Console.WriteLine("Session's segment's payload size was adjusted to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
 			}
 
-			keepAlive.setTimeout(5000);
+			keepAlive.setTimeout(standardKeepAlivePeriod);
 			sendMessageAsync(negotiationMessage.createResponse(), 0, 0, _testingResponseErrorCount-- > 0);
 			// Console.WriteLine(msg);
 			return true;

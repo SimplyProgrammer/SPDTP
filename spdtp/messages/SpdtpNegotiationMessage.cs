@@ -72,7 +72,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 	// 	checksum = newChecksum;
 	// }
 
-	public static SpdtpNegotiationMessage newSessionTerminationRequest()
+	public static SpdtpNegotiationMessage newSessionTerminationRequest() // 8x1
 	{
 		return new SpdtpNegotiationMessage(SESSION_TERMINATION_8x1);
 	}
