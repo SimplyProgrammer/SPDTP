@@ -3,6 +3,8 @@ using NullFX.CRC;
 
 public class SpdtpResourceSegment : SpdtpMessage
 {
+	public static readonly int TRANSMISSION_SUCCESSFUL_24x1 = 0b0000_0000__1111_1111__1111_1111__1111_1111;
+
 	protected int segmentID; // 24 bits
 	protected int resourceIdentifier;
 
@@ -31,8 +33,6 @@ public class SpdtpResourceSegment : SpdtpMessage
 	{
 		return new SpdtpResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags), getSegmentID(), getResourceIdentifier());
 	}
-
-	// TODO test
 
 	public override byte[] getBytes()
 	{
@@ -82,7 +82,7 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 	public int getSegmentID()
 	{
-		return this.segmentID;
+		return segmentID;
 	}
 
 	public void setSegmentID(int segmentID)
@@ -92,7 +92,7 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 	public int getResourceIdentifier()
 	{
-		return this.resourceIdentifier;
+		return resourceIdentifier;
 	}
 
 	public void setResourceIdentifier(int resourceIdentifier)
@@ -102,11 +102,16 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 	public byte[] getPayload()
 	{
-		return this.payload;
+		return payload;
 	}
 
 	public void setPayload(byte[] payload)
 	{
 		this.payload = payload;
+	}
+
+	public static SpdtpResourceSegment newTransmissionSuccessfulResponse(int resourceIdentifier, byte additionalFlags = 0) // 8x24
+	{
+		return new SpdtpResourceSegment((byte) (STATE_RESPONSE | additionalFlags), TRANSMISSION_SUCCESSFUL_24x1, resourceIdentifier);
 	}
 }

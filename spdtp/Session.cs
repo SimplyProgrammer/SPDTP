@@ -2,6 +2,7 @@ using System;
 using System.Net.Http.Headers;
 using static SpdtpMessage;
 using static SpdtpResourceInfoMessage;
+using static SpdtpResourceSegment;
 
 /**
 * This class represents the established session where the real communication is handled...
@@ -147,8 +148,34 @@ public class Session
 
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
-		var transmission = transmissions[resourceSegment.getResourceIdentifier()];
-		return transmission != null && transmission.handleResourceSegmentMsg(resourceSegment);
+		int resourceIdentifier = resourceSegment.getResourceIdentifier();
+		if (resourceSegment.getSegmentID() == TRANSMISSION_SUCCESSFUL_24x1)
+		{
+			// transmission.finalize();
+			if (transmissions.Remove(resourceIdentifier)) // ? Maybe do not for caching
+			{
+				transmission.finish();
+				Console.WriteLine("Resource (" + resourceIdentifier + ") was successfully received by the other peer, resources deallocated!");
+			}
+			return true;
+		}
+
+		var transmission = transmissions[resourceIdentifier];
+		if (transmission != null)
+		{
+			bool processed = transmission.handleResourceSegmentMsg(resourceSegment);
+			if (transmission.isFinished())
+			{
+				transmission.finish();
+
+				connection.sendMessageAsync(newTransmissionSuccessfulResponse(resourceIdentifier));
+				connection.handleTransmittedResource(transmission);
+				transmissions.Remove(resourceIdentifier);
+			}
+			return processed;
+		}
+
+		return false;
 	}
 
 	public SpdtpNegotiationMessage getMetadata()

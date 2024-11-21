@@ -1,8 +1,13 @@
+
+using System.Diagnostics.CodeAnalysis;
+
 /**
  *	Helper utilities
 */
-public class Utils 
+public sealed class Utils 
 {
+	public static Random _errRand = new Random(123);
+
 	public static byte[] getBytes(ushort value)
 	{
 		return new byte[] {
@@ -36,14 +41,17 @@ public class Utils
 		return (bytes[from] << 16) | (bytes[from+1] << 8) | bytes[from+2];
 	}
 
-	public static int getHashIdentifier(String str, int hash = 7)
+	public static int getHashIdentifier(String str, int hash = 7) // Always the same for same value, (almost) always unique...
 	{
+		if (str == null)
+			return 0;
 		for (int i = 0, len = str.Length; i < len; i++)
 			hash = hash*31 + str[i];
 		return hash;
 	}
 
-	public static String formatHeader(byte[] bytes, int cols = 4) // TODO impl
+
+	public static String formatHeader(byte[] bytes, int cols = 4)
 	{
 		String formatted = "";
 
@@ -57,13 +65,11 @@ public class Utils
 		return formatted;
 	}
 
-	public static byte[] introduceRandErrors(byte[] bytes, int errorCount = 1, int seed = 123)
+	public static byte[] introduceRandErrors(byte[] bytes, int errorCount = 1)
 	{
-		Random rand = new Random(seed);
-
 		while (errorCount-- > 0)
 		{
-			int octet = rand.Next(bytes.Length-1), bit = rand.Next(8);
+			int octet = _errRand.Next(bytes.Length-1), bit = _errRand.Next(8);
 			// Console.WriteLine(octet + ", " + bit);
 			bytes[octet] ^= (byte) (0b1 << bit);
 		}

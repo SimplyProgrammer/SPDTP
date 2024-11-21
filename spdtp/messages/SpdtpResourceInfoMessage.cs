@@ -93,6 +93,6 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 	public void setResourceName(String resourceName)
 	{
 		this.resourceName = resourceName;
-		resourceIdentifier = resourceName == null ? 0 : resourceName.GetHashCode();
+		resourceIdentifier = Utils.getHashIdentifier(resourceName);
 	}
 }

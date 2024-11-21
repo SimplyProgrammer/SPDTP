@@ -29,10 +29,7 @@ public class AsyncTimer
 		if (isRunning)
 			return this; 
 
-		timerThread = new Thread(loop)
-		{
-			IsBackground = true
-		};
+		timerThread = new Thread(loop) { IsBackground = true };
 		timerThread.Start();
 
 		timeoutCount = resetCount = 0;

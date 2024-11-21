@@ -46,7 +46,7 @@ public class CliPeer : Connection
 
 			foreach(KeyValuePair<int, ResourceTransmission> entry in session.getTransmissions())
 			{
-				str += entry.Key + ": " + entry.Value + "\n";
+				str += entry.Key + ": " + entry.Value.ToString() + "\n";
 			}
 
 			str += "}";
@@ -140,17 +140,23 @@ public class CliPeer : Connection
 					String[] args = userInput.Split(' ');
 					if (userInput.Length > 1 && userInput[1] == '!')
 					{
-						FileStream resource = File.Open(userInput = userInput.Substring(2), FileMode.Open, FileAccess.Read);
-						
-						byte[] bytes = new byte[userInput.Length];
-						resource.Read(bytes, 0, bytes.Length);
-						session.sendResource(bytes, resource, args.Length > 1 && args[1] == "-e");
+						if ((userInput = userInput.Substring(2).Trim()).Length < 1)
+							continue;
 
+						FileStream resource = File.Open(userInput, FileMode.Open, FileAccess.Read);
+						
+						byte[] bytes = new byte[resource.Length];
+						resource.Read(bytes, 0, bytes.Length);
 						resource.Close();
+
+						session.sendResource(bytes, resource, args.Length > 1 && args[1] == "-e");
 					}
 					else
 					{
-						byte[] bytes = Encoding.ASCII.GetBytes(userInput = userInput.Substring(1));
+						if ((userInput = userInput.Substring(1).Trim()).Length < 1)
+							continue;
+
+						byte[] bytes = Encoding.ASCII.GetBytes(userInput);
 						session.sendResource(bytes, userInput, args.Length > 1 && args[1] == "-e");
 					}
 
@@ -194,6 +200,11 @@ public class CliPeer : Connection
 				Console.Error.WriteLine("Error has occurred: " + ex);
 			}
 		}
+	}
+
+	public override void handleTransmittedResource(ResourceTransmission finishedResourceTransmission)
+	{
+		// TODO
 	}
 
 	public override T sendMessage<T>(T message, bool err = false)
@@ -251,9 +262,14 @@ public class CliPeer : Connection
 			{
 				if (isRunning)
 				{
+					if (ex.ErrorCode == 10054) // On ICMP failed. Other peer died...
+					{
+						Console.WriteLine("Other peer seems to be unreachable!");
+
+						// close();
+						continue;
+					}
 					Console.Error.WriteLine("SocketException (" + ex.ErrorCode + "): " + ex.Message);
-					if (ex.ErrorCode == 10054) // Other peer died...
-						close();
 				}
 			}
 		}

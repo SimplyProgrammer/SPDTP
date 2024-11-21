@@ -9,7 +9,7 @@ using static SpdtpMessage;
 using static SpdtpNegotiationMessage;
 
 /**
-* The abstraction of Connection (peer)
+* The abstraction of UDP Connection (peer)
 */
 public abstract class Connection
 {
@@ -69,20 +69,16 @@ public abstract class Connection
 
 	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int reattemptCount = 0, int period = 5000, bool err = false)
 	{
-		new Thread(() => sendMessage(message, err))
-		{
-			IsBackground = true
-		}.Start();
+		new Thread(() => sendMessage(message, err)) { IsBackground = true }.Start();
 
 		if (reattemptCount > 0)
 			return new AsyncTimer(self => 
 			{
 				if (self.getTimeoutCount() > reattemptCount)
 					self.stop(false, true);
-				else
+				else if (isRunning)
 				{
 					sendMessage(message, err);
-					keepAlive.restart();
 				}
 
 			}, period).start();
@@ -99,6 +95,8 @@ public abstract class Connection
 	public abstract void resetResendAttempts(int to = 0);
 
 	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, SpdtpMessage keepAliveMessage*/);
+
+	public abstract void handleTransmittedResource(ResourceTransmission finishedResourceTransmission);
 
 	public virtual void start()
 	{
@@ -141,5 +139,10 @@ public abstract class Connection
 	public void setSession(Session session)
 	{
 		this.session = session;
+	}
+
+	public AsyncTimer getKeepAlive()
+	{
+		return keepAlive;
 	}
 }

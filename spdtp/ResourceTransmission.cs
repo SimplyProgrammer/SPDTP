@@ -15,6 +15,9 @@ public class ResourceTransmission
 	protected int segmentPayloadSize;
 
 	protected int processedSegmentCount, expectedSegmentCount;
+	protected int receivedErrorCount = 0;
+
+	protected bool isRunning;
 
 	public ResourceTransmission(Connection connection, SpdtpResourceInfoMessage resourceMetadata, SpdtpResourceSegment[] segments = null)
 	{
@@ -26,28 +29,114 @@ public class ResourceTransmission
 	public override String ToString()
 	{
 		String str = GetType().Name + "[" + processedSegmentCount + "/" + expectedSegmentCount + " |\n";
-		for (int i = 0; i < segments.Length; i++)
-			str += "\t" + segments[i] == null ? "null" : segments[i];
+		for (int i = 0; i < segments.Length; i++) {
+			if (segments[i] == null)
+				str += "\tnull\n";
+			else
+			{
+				str += "\t" + segments[i] + "\n";
+				// str += Utils.formatHeader(segments[i].getBytes());
+			}
+		}
 
 		return str + "\n]";
 	}
 
 	public void initiateTransmission()
 	{
-		Console.WriteLine(">" + ToString());
-		// for (int i = 0; i < expectedSegmentCount; i++)
-		// {
-		// 	// TODO
-		// }
+		// Console.WriteLine(">" + ToString());
+		isRunning = true;
+
+		var senders = new Thread[expectedSegmentCount];
+		var startTime = DateTime.Now;
+		for (int i = 0; i < expectedSegmentCount; i++)
+		{
+			senders[i] = sendSegmentAsync(i);
+		}
+
+		new Thread(() => {
+			for (int i = 0; i < expectedSegmentCount; i++)
+				senders[i].Join();
+
+			Console.WriteLine("All segments were send in " + (DateTime.Now - startTime).Seconds + "s!");
+		}) { IsBackground = true }.Start();
+
+	}
+
+	public Thread sendSegmentAsync(int segment, String message = "Sending ")
+	{
+		var sender = new Thread(() => {
+			connection.sendMessage(segments[segment]);
+			connection.getKeepAlive().restart();
+			processedSegmentCount++;
+
+			Console.WriteLine(message + segments[segment] + " asynchronously!");
+		}) { IsBackground = true };
+		
+		sender.Start();
+		return sender;
+	}
+
+	public void askToResendMissing(int count = 1)
+	{
+		new Thread(() => {
+			for (int i = 0, countToResend = count; isRunning && i < expectedSegmentCount; i++)
+			{
+				if (segments[i] == null)
+				{
+					connection.sendMessageAsync(new SpdtpResourceSegment(0, i, resourceMetadata.getResourceIdentifier()));
+					connection.getKeepAlive().restart();
+					if (countToResend-- > 0)
+						break;
+				}
+			}
+		}) { IsBackground = true }.Start();;
 	}
 
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
 		//processedSegmentCount++;
+		if (resourceSegment.isState(STATE_REQUEST))
+		{
+			if (resourceSegment.getPayload() == null)
+				return false;
+
+			int segmentID = resourceSegment.getSegmentID();
+			if (!resourceSegment.validate())
+			{
+				if (segmentID < expectedSegmentCount && segments[segmentID] == null)
+				{
+					connection.sendMessageAsync(resourceSegment.createResendRequest());
+					Console.WriteLine(resourceMetadata.getResourceIdentifier() + ": Segment " + segmentID + " was received with errors, asking for resend!");
+				}
+				else // This should be very rare...
+				{
+					Console.WriteLine(resourceMetadata.getResourceIdentifier() + ": Segment was received with erroneous ID, asking to resend the first missing one!");
+					askToResendMissing();
+				}
+
+				receivedErrorCount++;
+				return true;
+			}
+
+			// TODO timeout
+			segments[segmentID] = resourceSegment;
+			if (receivedErrorCount > 0)
+				receivedErrorCount--;
+			return true;
+		}
+
+		if (resourceSegment.isState(STATE_RESEND_REQUEST))
+		{
+			if (!resourceSegment.validate())
+			{
+				// TODO
+			}
+			return true;
+		}
+
 		return false;
 	}
-
-	// TODO test
 
 	/**
 	* Fragment the resource and populate the SpdtpResourceSegment array...
@@ -98,6 +187,11 @@ public class ResourceTransmission
 		return resourceBytes;
 	}
 
+	public void finish()
+	{
+		isRunning = false;
+	}
+
 	public void setSegments(SpdtpResourceSegment[] segments)
 	{
 		this.segments = segments;
@@ -131,8 +225,14 @@ public class ResourceTransmission
 		return processedSegmentCount >= expectedSegmentCount;
 	}
 
+	// public void setProcessedSegmentCount(int processed)
+	// {
+	// 	processedSegmentCount = processed;
+	// }
+
 	public SpdtpResourceInfoMessage getMetadata()
 	{
 		return resourceMetadata;
 	}
+
 }

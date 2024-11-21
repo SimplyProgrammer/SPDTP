@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using static SpdtpMessage;
 
 public class Program
 {
@@ -24,6 +25,7 @@ public class Program
 
 	public static void test()
 	{
+		/* Test Negotiation */
 		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessage.KEEP_ALIVE | SpdtpMessage.STATE_REQUEST), 123);
 		
 		// Console.WriteLine(spdtpNegotiationMessage);
@@ -40,31 +42,65 @@ public class Program
 
 		// Console.WriteLine();
 
-		Console.WriteLine("hii".GetHashCode());
+		/* Test resource info */
+		// Console.WriteLine(Utils.getHashIdentifier("hii"));
 
-		var spdtpMessage = new SpdtpResourceInfoMessage(SpdtpMessage.STATE_REQUEST, 123, SpdtpResourceInfoMessage.TEXT_MSG_MARK + "Helloo!");
+		// var spdtpMessage = new SpdtpResourceInfoMessage(SpdtpMessage.STATE_REQUEST, 123, SpdtpResourceInfoMessage.TEXT_MSG_MARK + "Hello!");
 		
-		Console.WriteLine(spdtpMessage);
-		Console.WriteLine(spdtpMessage.validate());
-		Console.WriteLine(spdtpMessage.getResourceIdentifier());
-		Console.WriteLine(Utils.formatHeader(spdtpMessage.getBytes()) + "\n");
+		// Console.WriteLine(spdtpMessage);
+		// Console.WriteLine(spdtpMessage.validate());
+		// Console.WriteLine(spdtpMessage.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(spdtpMessage.getBytes()) + "\n");
 
-		var newHeader = Utils.introduceRandErrors(spdtpMessage.getBytes(), 1);
+		// var newHeader = Utils.introduceRandErrors(spdtpMessage.getBytes(), 1);
 
-		var newSpdtpMessage = SpdtpMessage.newMessageFromBytes(newHeader);
+		// var newSpdtpMessage = SpdtpMessage.newMessageFromBytes(newHeader);
 
-		Console.WriteLine(newSpdtpMessage);
-		Console.WriteLine(newSpdtpMessage.validate());
-		Console.WriteLine(spdtpMessage.getResourceIdentifier());
-		// Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
-		Console.WriteLine(Utils.formatHeader(newHeader));
+		// Console.WriteLine(newSpdtpMessage);
+		// Console.WriteLine(newSpdtpMessage.validate());
+		// Console.WriteLine(spdtpMessage.getResourceIdentifier());
+		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(Utils.formatHeader(newHeader));
 		
-		Console.WriteLine(newSpdtpMessage);
+		// Console.WriteLine(newSpdtpMessage);
+
+		/* Test trans */
+		// FileStream resource = File.Open("./data/test_7221_2mb.jpg", FileMode.Open, FileAccess.Read);
+		
+		// byte[] bytes = new byte[resource.Length];
+		// resource.Read(bytes, 0, bytes.Length);
+		// resource.Close(); 
+
+		// Console.WriteLine(bytes.Length);
+
+		// int segmentPayloadSize = 123;
+
+		// var segmentCount = (bytes.Length - 1) / segmentPayloadSize + 1;
+		// var pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resource).Name, 64));
+
+		// var resourceTrans = new ResourceTransmission(null, pendingResourceInfoMessage, new SpdtpResourceSegment[segmentCount]);
+		// resourceTrans.initializeResourceTransmission(bytes, segmentPayloadSize);
+
+		// Console.WriteLine(resourceTrans);
+
+		// var segment = resourceTrans.getSegments()[resourceTrans.getExpectedSegmentCount()-1].createResendRequest();
+		// Console.WriteLine(segment);
+		// Console.WriteLine(segment.validate());
+		// Console.WriteLine(segment.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(segment.getBytes()) + "\n");
+
+		// resourceTrans.setProcessedSegmentCount(resourceTrans.getExpectedSegmentCount());
+		// byte[] reconstructedBytes = resourceTrans.reconstructResource();
+		// Console.WriteLine(reconstructedBytes.Length);
+
+		// var fs = new FileStream("./data/_results/_test_7221_2mb.jpg", FileMode.Create, FileAccess.Write);
+		// fs.Write(reconstructedBytes, 0, reconstructedBytes.Length);
+		// fs.Close();
 	}
 
 	public static void Main(string[] args)
 	{
-		test();
+		// test();
 
 		// AsyncTimer timer = new AsyncTimer(() => Console.WriteLine("haha"), 3000).start();
 
@@ -86,41 +122,47 @@ public class Program
 
 		// Console.WriteLine(Utils.formatHeader(Utils.getBytes((int) unint)) + "\n" + Utils.formatHeader(Utils.getBytes(sint)) + "\n" + (uint) Utils.getInt(Utils.getBytes((int) unint)) + "\n" + (unint == sint) + "\n" + (unint == (uint) sint));
 
-		// while (true)
-		// {
-		// 	try 
-		// 	{
-		// 		IPEndPoint localPoint, remotePoint;
+		List<String> ips = new List<String>();
+		IPHostEntry entry = Dns.GetHostEntry(Dns.GetHostName());
+		foreach (IPAddress ip in entry.AddressList)
+			if (ip.AddressFamily == AddressFamily.InterNetwork)
+				ips.Add(ip.ToString());
 
-		// 		Console.Write("Enter your local socket address: ");
-		// 		String localSocketAddress = Console.ReadLine();
-		// 		if (localSocketAddress?.ToLower() == "exit")
-		// 			break;
+		while (true)
+		{
+			try
+			{
+				IPEndPoint localPoint, remotePoint;
+
+				Console.Write("Enter your local socket address: ");
+				String localSocketAddress = Console.ReadLine();
+				if (localSocketAddress?.ToLower() == "exit")
+					break;
 		
-		// 		String[] localIpAndPort = localSocketAddress.Split(':');
-		// 		if (localIpAndPort[0].Length < 1)
-		// 			localIpAndPort[0] = "127.0.0.1";
-		// 		localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0].Replace("localhost", "127.0.0.1")), short.Parse(localIpAndPort[1]));
+				String[] localIpAndPort = localSocketAddress.Split(':');
+				if (localIpAndPort[0].Length < 1)
+					localIpAndPort[0] = "127.0.0.1";
+				localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0] = localIpAndPort[0].Replace("localhost", "127.0.0.1").Replace("ip", ips[0])), short.Parse(localIpAndPort[1]));
 
-		// 		Console.Write("Enter remote socket address: ");
-		// 		String remoteSocketAddress = Console.ReadLine();
-		// 		if (remoteSocketAddress?.ToLower() == "exit")
-		// 			break;
+				Console.Write("Enter remote socket address: ");
+				String remoteSocketAddress = Console.ReadLine();
+				if (remoteSocketAddress?.ToLower() == "exit")
+					break;
 
-		// 		String[] remoteIpAndPort = remoteSocketAddress.Split(':');
-		// 		if (remoteIpAndPort[0].Length < 1)
-		// 			remoteIpAndPort[0] = localIpAndPort[0];
+				String[] remoteIpAndPort = remoteSocketAddress.Split(':');
+				if (remoteIpAndPort[0].Length < 1)
+					remoteIpAndPort[0] = localIpAndPort[0];
 
-		// 		int remotePort = remoteIpAndPort[1].StartsWith("+") ? short.Parse(localIpAndPort[1])+1 : (remoteIpAndPort[1].StartsWith("-") ? short.Parse(localIpAndPort[1])-1 : short.Parse(remoteIpAndPort[1]));
-		// 		remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), remotePort);
+				int remotePort = remoteIpAndPort[1].StartsWith("+") ? short.Parse(localIpAndPort[1])+1 : (remoteIpAndPort[1].StartsWith("-") ? short.Parse(localIpAndPort[1])-1 : short.Parse(remoteIpAndPort[1]));
+				remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), remotePort);
 
-		// 		var peer = new CliPeer(localPoint, remotePoint);
-		// 		peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");
-		// 		peer.start();
-		// 	}
-		// 	catch (Exception ex) {
-		// 		Console.Error.WriteLine("Error has occurred: " + ex);
-		// 	}
-		// }
+				var peer = new CliPeer(localPoint, remotePoint);
+				peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");
+				peer.start();
+			}
+			catch (Exception ex) {
+				Console.Error.WriteLine("Error has occurred: " + ex);
+			}
+		}
 	}
 }
