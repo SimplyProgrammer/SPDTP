@@ -28,7 +28,15 @@ public class ResourceTransmission
 
 	public override String ToString()
 	{
-		String str = GetType().Name + "[" + processedSegmentCount + "/" + expectedSegmentCount + " |\n";
+		return ToString();
+	}
+
+	public String ToString(bool verbose = true)
+	{
+		if (!verbose)
+			return GetType().Name + "[" + resourceMetadata.getResourceIdentifier() + ", " + processedSegmentCount + "/" + expectedSegmentCount + "]";
+
+		String str = GetType().Name + "[" + resourceMetadata.getResourceIdentifier() + ", " + processedSegmentCount + "/" + expectedSegmentCount + " |\n";
 		for (int i = 0; i < segments.Length; i++) {
 			if (segments[i] == null)
 				str += "\tnull\n";
@@ -95,7 +103,6 @@ public class ResourceTransmission
 
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
-		//processedSegmentCount++;
 		if (resourceSegment.isState(STATE_REQUEST))
 		{
 			if (resourceSegment.getPayload() == null)
@@ -120,9 +127,15 @@ public class ResourceTransmission
 			}
 
 			// TODO timeout
-			segments[segmentID] = resourceSegment;
-			if (receivedErrorCount > 0)
-				receivedErrorCount--;
+			if (segments[segmentID] == null)
+			{
+				segments[segmentID] = resourceSegment;
+				
+				processedSegmentCount++;
+				if (receivedErrorCount > 0)
+					receivedErrorCount--;
+				Console.WriteLine("Segment " + resourceSegment + " received successfully!");
+			}
 			return true;
 		}
 
@@ -234,5 +247,4 @@ public class ResourceTransmission
 	{
 		return resourceMetadata;
 	}
-
 }

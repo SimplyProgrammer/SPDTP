@@ -20,7 +20,7 @@ public class SpdtpResourceSegment : SpdtpMessage
 	public override string ToString()
 	{
 		if (payload != null)
-			return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + ", payload(" + payload.Length + ")]";
+			return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + " | " + payload.Length + " bytes]";
 		return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + "]";
 	}
 

@@ -30,7 +30,7 @@ public class Session
 		Console.WriteLine(transmissions.Remove(pendingResourceInfoMessage.getResourceIdentifier()) ? "Resources deallocated!" : "Resources not present (already deallocated)!");
 	}
 
-	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor, bool err = false)
+	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
 	{
 		if (pendingResourceInfoMessage != null)
 		{
@@ -69,7 +69,7 @@ public class Session
 			transmissions.Add(pendingResourceInfoMessage.getResourceIdentifier(), transmission);
 			transmission.initializeResourceTransmission(resourceBytes, metadata.getSegmentPayloadSize());
 
-			pendingResourceInfoResender = connection.sendMessageAsync(pendingResourceInfoMessage, 2, 5000, err).setOnStopCallback(handlePendingResourceInfoTimeout);
+			pendingResourceInfoResender = connection.sendMessageAsync(pendingResourceInfoMessage, 2, 5000/*, err*/).setOnStopCallback(handlePendingResourceInfoTimeout);
 
 			Console.WriteLine("Informing the other peer about incoming: " + pendingResourceInfoMessage.ToString(true) + "!");
 		}
@@ -111,7 +111,7 @@ public class Session
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " was already initialized, waiting for incoming transmission!");
 			}
 
-			connection.sendMessageAsync(incomingResourceMsg.createResponse(), 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0);
+			connection.sendMessageAsync(incomingResourceMsg.createResponse(), 0, 0/*, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0*/);
 			return true;
 		}
 
@@ -137,7 +137,7 @@ public class Session
 		if (incomingResourceMsg.isState(STATE_RESEND_REQUEST))
 		{
 			if (pendingResourceInfoMessage == null)
-				Console.WriteLine("No resource into to resend...");
+				Console.WriteLine("No resource info to resend...");
 			else
 				connection.attemptResend(pendingResourceInfoMessage);
 			return true;
@@ -149,6 +149,7 @@ public class Session
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
 		int resourceIdentifier = resourceSegment.getResourceIdentifier();
+		var transmission = transmissions[resourceIdentifier];
 		if (resourceSegment.getSegmentID() == TRANSMISSION_SUCCESSFUL_24x1)
 		{
 			// transmission.finalize();
@@ -160,7 +161,6 @@ public class Session
 			return true;
 		}
 
-		var transmission = transmissions[resourceIdentifier];
 		if (transmission != null)
 		{
 			bool processed = transmission.handleResourceSegmentMsg(resourceSegment);

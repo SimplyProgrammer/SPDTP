@@ -132,6 +132,7 @@ public class Program
 		{
 			try
 			{
+				int defaultSpdtpPort = 18800;
 				IPEndPoint localPoint, remotePoint;
 
 				Console.Write("Enter your local socket address: ");
@@ -142,7 +143,9 @@ public class Program
 				String[] localIpAndPort = localSocketAddress.Split(':');
 				if (localIpAndPort[0].Length < 1)
 					localIpAndPort[0] = "127.0.0.1";
-				localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0] = localIpAndPort[0].Replace("localhost", "127.0.0.1").Replace("ip", ips[0])), short.Parse(localIpAndPort[1]));
+	
+				int localPort = localIpAndPort[1].StartsWith("+") ? defaultSpdtpPort+1 : (localIpAndPort[1].StartsWith("-") ? defaultSpdtpPort-1 : (localIpAndPort[1].Length < 1 ? defaultSpdtpPort : short.Parse(localIpAndPort[1])));
+				localPoint = new IPEndPoint(IPAddress.Parse(localIpAndPort[0] = localIpAndPort[0].Replace("localhost", "127.0.0.1").Replace("ip", ips[0])), localPort);
 
 				Console.Write("Enter remote socket address: ");
 				String remoteSocketAddress = Console.ReadLine();
@@ -153,7 +156,7 @@ public class Program
 				if (remoteIpAndPort[0].Length < 1)
 					remoteIpAndPort[0] = localIpAndPort[0];
 
-				int remotePort = remoteIpAndPort[1].StartsWith("+") ? short.Parse(localIpAndPort[1])+1 : (remoteIpAndPort[1].StartsWith("-") ? short.Parse(localIpAndPort[1])-1 : short.Parse(remoteIpAndPort[1]));
+				int remotePort = remoteIpAndPort[1].StartsWith("+") ? localPort+1 : (remoteIpAndPort[1].StartsWith("-") ? localPort-1 : short.Parse(remoteIpAndPort[1]));
 				remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), remotePort);
 
 				var peer = new CliPeer(localPoint, remotePoint);

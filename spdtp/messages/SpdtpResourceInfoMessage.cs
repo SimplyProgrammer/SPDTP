@@ -12,6 +12,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 
 	protected int segmentCount; // 24 bits
 	protected String resourceName;
+
 	protected int resourceIdentifier; // Cache...
 
 	public SpdtpResourceInfoMessage(byte additionalMessageFlags = 0, int segmentCount = 0, String resourceName = "") : base((byte) (additionalMessageFlags | INCOMING_RESOURCE_INFO), INCOMING_RESOURCE_INFO)

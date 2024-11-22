@@ -36,12 +36,12 @@ public abstract class Connection
 
 	public override string ToString()
 	{
-		return GetType().Name + "[" + this.localSocket.ToString() + " <-> " + this.remoteSocket.ToString() + "]";
+		return GetType().Name + "[" + localSocket.ToString() + " <-> " + remoteSocket.ToString() + "]";
 	}
 
-	public virtual SpdtpNegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000, bool err = false)
+	public virtual SpdtpNegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000)
 	{
-		var negotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize), err);
+		var negotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize));
 		keepAlive.setTimeout(newKeepAlivePeriod);
 		keepAlive.restart();
 
@@ -67,9 +67,9 @@ public abstract class Connection
 		close();
 	}
 
-	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int reattemptCount = 0, int period = 5000, bool err = false)
+	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int reattemptCount = 0, int period = 5000)
 	{
-		new Thread(() => sendMessage(message, err)) { IsBackground = true }.Start();
+		new Thread(() => sendMessage(message)) { IsBackground = true }.Start();
 
 		if (reattemptCount > 0)
 			return new AsyncTimer(self => 
@@ -78,7 +78,7 @@ public abstract class Connection
 					self.stop(false, true);
 				else if (isRunning)
 				{
-					sendMessage(message, err);
+					sendMessage(message);
 				}
 
 			}, period).start();
@@ -86,7 +86,7 @@ public abstract class Connection
 		return null;
 	}
 
-	public abstract T sendMessage<T>(T message, bool err = false) where T : SpdtpMessage;
+	public abstract T sendMessage<T>(T message) where T : SpdtpMessage;
 
 	protected abstract void receiveLoop();
 
