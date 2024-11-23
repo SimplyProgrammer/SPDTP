@@ -25,9 +25,9 @@ public class CliPeer : Connection
 	protected int standardKeepAlivePeriod = 5000;
 
 	protected bool _receiveInterrupt;
-	internal int _testingErrorCount = 0, everyNthError = 0;
+	internal int _testingErrorCount = 0, _everyNthError = 0, _requestsBeforeErr = 0;
 
-	protected String saveDirectory = Environment.ExpandEnvironmentVariables("%userprofile%/downloads/");
+	protected String saveDirectory = Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "downloads");
 	// protected int _interruptedLatency = 0;
 
 	public CliPeer(IPEndPoint localSocket, IPEndPoint remoteSocket) : base(localSocket, remoteSocket, 30000)
@@ -86,12 +86,21 @@ public class CliPeer : Connection
 				{
 					try
 					{
-						_testingErrorCount = int.Parse(userInput.Substring(3));
+						_testingErrorCount = int.Parse(userInput = userInput.Substring(3));
+						
+						String[] args = userInput.Split(' ');
+						if (args.Length > 1)
+							_everyNthError = int.Parse(args[1]);
+						else
+							_everyNthError = 0;
 					}
 					catch (Exception ex)
 					{
-						Console.Error.WriteLine("Error has occurred: " + ex);
+						Console.Error.WriteLine("Error has occurred: " + ex.Message);
 					}
+
+					_requestsBeforeErr = 0;
+					Console.WriteLine(_testingErrorCount + " " + _everyNthError);
 				}
 				else if (userInput.StartsWith("-kpal-per"))
 				{
@@ -263,9 +272,16 @@ public class CliPeer : Connection
 	{
 		byte[] msgBytes = message.getBytes();
 
-		bool err = _testingErrorCount-- > 0;
+		bool err = _testingErrorCount > 0;
 		if (err)
-			Utils.introduceRandErrors(msgBytes);
+		{
+			if (_requestsBeforeErr++ >= _everyNthError)
+			{
+				Utils.introduceRandErrors(msgBytes);
+				_requestsBeforeErr = 0;
+			}
+			_testingErrorCount--;
+		}
 		udpClient.Send(msgBytes, msgBytes.Length, remoteSocket);
 
 		if (verbose)
