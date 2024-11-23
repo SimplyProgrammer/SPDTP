@@ -1,6 +1,5 @@
 # SPDTP coloring (View->Color Rules->Import...->This file)	
 											bg				fg
-@SPDTP Kpal@spdtp.flags & 0b00100000@[0,8224,12079][25700,25700,25700]
 
 @SPDTP Transmission finish@spdtp.segment.id>=16777215@[43690,65535,0][5654,20654,5654]
 @SPDTP End...@spdtp.flags==255@[43690,43690,0][5654,20654,5654]
@@ -14,6 +13,8 @@
 @SPDTP Segment response@spdtp.message_type==RESOURCE_SEGMENT && spdtp.transmission_state==STATE_RESPONSE@[16705,50115,0][22616,22616,22616]
 @SPDTP Segment err@spdtp.message_type==RESOURCE_SEGMENT && spdtp.transmission_state==STATE_RESEND_REQUEST@[16705,50115,0][44204,0,26471]
 
-@SPDTP Nego@spdtp.message_type==NEGOTIATION@[0,43690,65535][4626,10023,11822]
 @SPDTP Incoming resource@spdtp.message_type==INCOMING_RESOURCE_INFO@[0,57054,57054][4626,10023,11822]
 @SPDTP Segment@spdtp.message_type==RESOURCE_SEGMENT@[16705,50115,0][4626,10023,11822]
+
+@SPDTP Kpal@spdtp.flags & 0b00100000@[0,8224,12079][25700,25700,25700]
+@SPDTP Nego@spdtp.message_type==NEGOTIATION@[0,43690,65535][4626,10023,11822]
