@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-using static SpdtpMessage;
+using static SpdtpMessageBase;
 using static SpdtpResourceInfoMessage;
 using static SpdtpNegotiationMessage;
 
@@ -15,9 +15,6 @@ using static SpdtpNegotiationMessage;
 */
 public class CliPeer : Connection
 {
-	public static readonly int KEEP_ALIVE_ATTEMPTS = 3;
-	public static readonly int ACCEPTABLE_ERR_COUNT = 2;
-
 	public bool verbose = false;
 
 	protected SpdtpNegotiationMessage pendingNegotiationMessage;
@@ -35,7 +32,7 @@ public class CliPeer : Connection
 		keepAlive.start();
 	}
 
-	protected String getHelp()
+	protected String getHelp(bool v = false)
 	{
 		String str = "Connection " + this + " is established!\n";
 		if (session != null)
@@ -46,22 +43,29 @@ public class CliPeer : Connection
 			str += "Type 'disc' to terminate the session and connection!\n";
 			str += "Type 'save-dir <valid directory path>' to specify where to save received files!\n";
 
-			if (verbose)
+			if (v || verbose)
 			{
 				str += "Transmissions: {\n";
 
-				foreach(KeyValuePair<int, ResourceTransmission> entry in session.getTransmissions())
+				foreach (var entry in session.getTransmissions())
 				{
 					str += entry.Key + ": " + entry.Value.ToString() + "\n";
 				}
-				str += "}";
+				str += "}\n\n";
+
+				str += "-er <count> <interval>: Simulate errors. Sets count of errors in outgoing messages and interval between erroneous messages.\n";
+				str += "-kpal-per <milliseconds>: Update the keep-alive period.\n";
+				str += "-kpal-rest: Restart the keep-alive timer immediately.\n";
+				str += "-cls-res: Clear all active resource transmissions.\n";
+				str += "-verbo: Toggle verbose logging on/off.\n";
+				str += "-interr: Toggle simulated interruptions in receiving messages.\n";
 			}
 		}
 		else
 		{
 			str += "Type 'open' to open the communication session with specified segment's payload size!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
-			str += "Type ? to see help...\n";
+			str += "Type '?' or '? -v' to see help...\n";
 		}
 
 		return str;
@@ -78,17 +82,19 @@ public class CliPeer : Connection
 				if (userInput.Length < 1)
 					continue;
 
-				if (userInput.Equals("?"))
+				if (userInput.StartsWith("?"))
 				{
-					Console.WriteLine(getHelp());
+					Console.WriteLine(getHelp(userInput.EndsWith("-v")));
 				}
 				else if (userInput.Length > 2 && userInput.StartsWith("-er"))
 				{
 					try
 					{
-						_testingErrorCount = int.Parse(userInput = userInput.Substring(3));
+						String[] args = userInput.Substring(3).Trim().Split(' ');
+
+						if (args.Length > 0)
+							_testingErrorCount = int.Parse(args[0]);
 						
-						String[] args = userInput.Split(' ');
 						if (args.Length > 1)
 							_everyNthError = int.Parse(args[1]);
 						else
@@ -233,7 +239,7 @@ public class CliPeer : Connection
 					Console.WriteLine(saveDirectory);
 				}
 				else
-					Console.WriteLine("Unknown! Please type  ?");
+					Console.WriteLine("Unknown! Please type '?' or '? -v'");
 			}
 			catch (IOException ex)
 			{
@@ -248,7 +254,7 @@ public class CliPeer : Connection
 
 	public override void handleTransmittedResource(ResourceTransmission finishedResourceTransmission)
 	{
-		byte[] bytes = finishedResourceTransmission.reconstructResource(); // TODO TEST
+		byte[] bytes = finishedResourceTransmission.reconstructResource();
 		var time = finishedResourceTransmission.getBenchmarkTimer().ElapsedMilliseconds;
 		if (finishedResourceTransmission.getMetadata().getResourceName().StartsWith(TEXT_MSG_MARK, StringComparison.Ordinal))
 		{
@@ -272,20 +278,22 @@ public class CliPeer : Connection
 	{
 		byte[] msgBytes = message.getBytes();
 
-		bool err = _testingErrorCount > 0;
-		if (err)
+		bool wasErr = false;
+		if (_testingErrorCount > 0)
 		{
-			if (_requestsBeforeErr++ >= _everyNthError)
+			if (++_requestsBeforeErr >= _everyNthError)
 			{
 				Utils.introduceRandErrors(msgBytes);
 				_requestsBeforeErr = 0;
+				_testingErrorCount--;
+
+				wasErr = true;
 			}
-			_testingErrorCount--;
 		}
 		udpClient.Send(msgBytes, msgBytes.Length, remoteSocket);
 
 		if (verbose)
-			Console.WriteLine("Message sent:  " + message + " - " + Utils.formatHeader(msgBytes) + (err ? "(with intentional error)" : ""));
+			Console.WriteLine("Message sent:  " + message + " - " + Utils.formatHeader(msgBytes) + (wasErr ? "(with intentional error)" : ""));
 		return message;
 	}
 
@@ -299,7 +307,7 @@ public class CliPeer : Connection
 				if (_receiveInterrupt)
 					continue;
 
-				SpdtpMessage spdtpMessage = newMessageFromBytes(rawMsg);
+				SpdtpMessageBase spdtpMessage = newMessageFromBytes(rawMsg);
 				keepAlive.restart();
 
 				if (verbose)
@@ -311,20 +319,8 @@ public class CliPeer : Connection
 						continue;
 				}
 
-				if (session != null)
-				{
-					if (spdtpMessage is SpdtpResourceInfoMessage)
-					{
-						if (session.handleIncomingResourceMsg((SpdtpResourceInfoMessage) spdtpMessage))
-							continue;
-					}
-
-					if (spdtpMessage is SpdtpResourceSegment)
-					{
-						if (session.handleResourceSegmentMsg((SpdtpResourceSegment) spdtpMessage))
-							continue;
-					}
-				}
+				if (session != null && session.handleIncomingMessage((SpdtpResourceInfoMessage) spdtpMessage))
+					continue;
 
 				Console.WriteLine("Unknown message was received: " + spdtpMessage + "!");
 			}
@@ -345,7 +341,7 @@ public class CliPeer : Connection
 		}
 	}
 
-	public override bool attemptResend(SpdtpMessage message)
+	public override bool attemptResend(SpdtpMessageBase message)
 	{
 		if (resendErrAttempts++ > ACCEPTABLE_ERR_COUNT)
 		{
@@ -393,24 +389,34 @@ public class CliPeer : Connection
 				session = new Session(this, negotiationMessage);
 				Console.WriteLine("Session with segment's payload size of " + negotiationMessage.getSegmentPayloadSize() + " bytes was established with the other peer!");
 			}
-			else if (session.getMetadata().getSegmentPayloadSize() != negotiationMessage.getSegmentPayloadSize())
+			else
 			{
-				session.setMetadata(negotiationMessage);
-				Console.WriteLine("Session's segment's payload size was adjusted to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
+				if (session.getMetadata().getSegmentPayloadSize() != negotiationMessage.getSegmentPayloadSize())
+				{
+					session.setMetadata(negotiationMessage);
+					Console.WriteLine("Session's segment's payload size was adjusted to " + negotiationMessage.getSegmentPayloadSize() + " bytes by the other peer!");
+				}
+
+				session.onKeepAlive();
 			}
 
 			keepAlive.setTimeout(standardKeepAlivePeriod);
-			sendMessageAsync(negotiationMessage.createResponse(negotiationMessage.getKeepAliveFlag()), 0, 0/*, _testingErrorCount-- > 0*/);
+			sendMessageAsync(negotiationMessage.createResponse(negotiationMessage.getKeepAliveFlag())/*, 0, 0, _testingErrorCount-- > 0*/);
 			// Console.WriteLine(msg);
 			return true;
 		}
 
 		if (negotiationMessage.isState(STATE_RESPONSE))
 		{
-			if (session != null && negotiationMessage.getSegmentPayloadSize() != session.getMetadata().getSegmentPayloadSize())
+			if (session != null)
 			{
-				session.setMetadata(negotiationMessage);
-				Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
+				if (negotiationMessage.getSegmentPayloadSize() != session.getMetadata().getSegmentPayloadSize())
+				{
+					session.setMetadata(negotiationMessage);
+					Console.WriteLine("Session's segment's payload size was updated by the other peer to " + negotiationMessage.getSegmentPayloadSize() + "!");
+				}
+
+				session.onKeepAlive();
 			}
 
 			pendingNegotiationMessage = null;

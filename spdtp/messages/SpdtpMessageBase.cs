@@ -3,7 +3,7 @@ using System;
 /**
 * This is common message type of Spdtp.
 */
-public abstract class SpdtpMessage
+public abstract class SpdtpMessageBase
 {
 	public static readonly byte NEGOTIATION = 0b0100_0000;
 	public static readonly byte INCOMING_RESOURCE_INFO = 0b1000_0000;
@@ -19,20 +19,20 @@ public abstract class SpdtpMessage
 
 	protected bool isValid = true;
 
-	public SpdtpMessage(byte messageFlags = 0, byte type = 0)
+	public SpdtpMessageBase(byte messageFlags = 0, byte type = 0)
 	{
 		this.messageFlags = messageFlags;
 
 		this.type = type;
 	}
 
-	public abstract SpdtpMessage createResponse(byte additionalFlags = 0);
+	public abstract SpdtpMessageBase createResponse(byte additionalFlags = 0);
 	
-	public abstract SpdtpMessage createResendRequest(byte additionalFlags = 0);
+	public abstract SpdtpMessageBase createResendRequest(byte additionalFlags = 0);
 
 	public abstract byte[] getBytes();
 
-	public abstract SpdtpMessage setFromBytes(byte[] bytes);
+	public abstract SpdtpMessageBase setFromBytes(byte[] bytes);
 
 	public virtual bool validate()
 	{
@@ -64,7 +64,7 @@ public abstract class SpdtpMessage
 		return (byte) (messageFlags & 0b0010_0000);
 	}
 
-	public static SpdtpMessage newMessageFromBytes(byte[] bytes)
+	public static SpdtpMessageBase newMessageFromBytes(byte[] bytes)
 	{
 		try
 		{

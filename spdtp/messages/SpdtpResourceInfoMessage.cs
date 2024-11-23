@@ -6,7 +6,7 @@ using System.Text;
 * INCOMING_RESOURCE_INFO message.
 * Used to inform the other peer about the incoming resource so he can act accordingly...
 */
-public class SpdtpResourceInfoMessage : SpdtpMessage
+public class SpdtpResourceInfoMessage : SpdtpMessageBase
 {
 	public static readonly String TEXT_MSG_MARK = new String(new char[] {(char) 1, (char) 3, (char) 2,});
 
@@ -60,7 +60,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessage
 		return bytes;
 	}
 
-	public override SpdtpMessage setFromBytes(byte[] bytes)
+	public override SpdtpMessageBase setFromBytes(byte[] bytes)
 	{
 		messageFlags = bytes[0];
 

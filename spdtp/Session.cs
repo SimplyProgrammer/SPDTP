@@ -1,6 +1,6 @@
 using System;
 
-using static SpdtpMessage;
+using static SpdtpMessageBase;
 using static SpdtpResourceInfoMessage;
 using static SpdtpResourceSegment;
 using static ResourceTransmission;
@@ -8,27 +8,27 @@ using static ResourceTransmission;
 /**
 * This class represents the established session where the real communication is handled...
 */
-public class Session
+public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bool>
 {
-	protected SpdtpNegotiationMessage metadata;
-
-	protected Connection connection;
-
 	protected Dictionary<int, ResourceTransmission> transmissions = new Dictionary<int, ResourceTransmission>();
 
 	protected SpdtpResourceInfoMessage pendingResourceInfoMessage;
-	protected AsyncTimer pendingResourceInfoResender;
 
-	public Session(Connection connection, SpdtpNegotiationMessage openingMetadata)
-	{
-		setMetadata(openingMetadata);
-		this.connection = connection;
-	}
+	public Session(Connection connection, SpdtpNegotiationMessage metadata) : base(connection, metadata) {}
 
-	protected void handlePendingResourceInfoTimeout(AsyncTimer resender)
+	// protected void handlePendingResourceInfoTimeout(AsyncTimer resender)
+	// {
+	// 	Console.WriteLine(pendingResourceInfoMessage.ToString() + " - Pending resource info timed out, transmission aborted!");
+	// 	Console.WriteLine(transmissions.Remove(pendingResourceInfoMessage.getResourceIdentifier()) ? "Resources deallocated!" : "Resources not present (already deallocated)!");
+	// }
+
+	public override void onKeepAlive()
 	{
-		Console.WriteLine(pendingResourceInfoMessage.ToString() + " - Pending resource info timed out, transmission aborted!");
-		Console.WriteLine(transmissions.Remove(pendingResourceInfoMessage.getResourceIdentifier()) ? "Resources deallocated!" : "Resources not present (already deallocated)!");
+		if (pendingResourceInfoMessage != null)
+			connection.sendMessageAsync(pendingResourceInfoMessage/*, 2, 5000, err*/);
+
+		foreach (var entry in transmissions)
+			entry.Value?.onKeepAlive();
 	}
 
 	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
@@ -70,7 +70,7 @@ public class Session
 			transmissions.Add(pendingResourceInfoMessage.getResourceIdentifier(), transmission);
 			transmission.initializeResourceTransmission(resourceBytes);
 
-			pendingResourceInfoResender = connection.sendMessageAsync(pendingResourceInfoMessage, 2, 5000/*, err*/).setOnStopCallback(handlePendingResourceInfoTimeout);
+			connection.sendMessageAsync(pendingResourceInfoMessage/*, 2, 5000, err*/);
 
 			Console.WriteLine("Informing the other peer about incoming: " + pendingResourceInfoMessage.ToString(true) + "!");
 		}
@@ -80,6 +80,16 @@ public class Session
 		}
 
 		return pendingResourceInfoMessage;
+	}
+
+	public override bool handleIncomingMessage(SpdtpMessageBase message)
+	{
+		if (message is SpdtpResourceInfoMessage)
+			return handleIncomingResourceMsg((SpdtpResourceInfoMessage) message);
+
+		if (message is SpdtpResourceSegment)
+			return handleResourceSegmentMsg((SpdtpResourceSegment) message);
+		return false;
 	}
 
 	public bool handleIncomingResourceMsg(SpdtpResourceInfoMessage incomingResourceMsg)
@@ -112,7 +122,7 @@ public class Session
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " was already initialized, waiting for incoming transmission!");
 			}
 
-			connection.sendMessageAsync(incomingResourceMsg.createResponse(), 0, 0/*, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0*/);
+			connection.sendMessageAsync(incomingResourceMsg.createResponse()/*, 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0*/);
 			return true;
 		}
 
@@ -130,7 +140,6 @@ public class Session
 			transmission.start();
 
 			pendingResourceInfoMessage = null; // "House keeping..."
-			pendingResourceInfoResender?.stop(false);
 			connection.resetResendAttempts();
 			return true;
 		}
@@ -164,7 +173,7 @@ public class Session
 
 		if (transmission != null)
 		{
-			int status = transmission.handleResourceSegmentMsg(resourceSegment);
+			int status = transmission.handleIncomingMessage(resourceSegment);
 			if (status >= FINISHED)
 			{
 				connection.sendMessageAsync(newTransmissionSuccessfulResponse(resourceIdentifier));
@@ -175,16 +184,6 @@ public class Session
 		}
 
 		return false;
-	}
-
-	public SpdtpNegotiationMessage getMetadata()
-	{
-		return metadata;
-	}
-
-	public void setMetadata(SpdtpNegotiationMessage newMetadata)
-	{
-		metadata = newMetadata;
 	}
 
 	public Dictionary<int, ResourceTransmission> getTransmissions()

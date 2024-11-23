@@ -1,7 +1,7 @@
 using System;
 using NullFX.CRC;
 
-public class SpdtpResourceSegment : SpdtpMessage
+public class SpdtpResourceSegment : SpdtpMessageBase
 {
 	public static readonly int TRANSMISSION_SUCCESSFUL_24x1 = 0b0000_0000__1111_1111__1111_1111__1111_1111;
 
@@ -59,7 +59,7 @@ public class SpdtpResourceSegment : SpdtpMessage
 		return bytes;
 	}
 
-	public override SpdtpMessage setFromBytes(byte[] bytes)
+	public override SpdtpMessageBase setFromBytes(byte[] bytes)
 	{
 		messageFlags = bytes[0];
 

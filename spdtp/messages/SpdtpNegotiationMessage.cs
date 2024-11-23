@@ -5,7 +5,7 @@ using NullFX.CRC;
 * NEGOTIATION message.
 * Used to open and set session params between peers...
 */
-public class SpdtpNegotiationMessage : SpdtpMessage
+public class SpdtpNegotiationMessage : SpdtpMessageBase
 {
 	public static readonly byte SESSION_TERMINATION_8x1 = 0b1111_1111;
 
@@ -47,7 +47,7 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		return bytes;
 	}
 
-	public override SpdtpMessage setFromBytes(byte[] bytes)
+	public override SpdtpMessageBase setFromBytes(byte[] bytes)
 	{
 		messageFlags = bytes[0];
 		

@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-using static SpdtpMessage;
+using static SpdtpMessageBase;
 using static SpdtpNegotiationMessage;
 
 /**
@@ -13,6 +13,9 @@ using static SpdtpNegotiationMessage;
 */
 public abstract class Connection
 {
+	public static readonly int KEEP_ALIVE_ATTEMPTS = 3;
+	public static readonly int ACCEPTABLE_ERR_COUNT = 2;
+
 	public static readonly short MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE = 1460;
 
 	protected UdpClient udpClient;
@@ -67,34 +70,34 @@ public abstract class Connection
 		close();
 	}
 
-	public virtual AsyncTimer sendMessageAsync(SpdtpMessage message, int reattemptCount = 0, int period = 5000)
+	public virtual void sendMessageAsync(SpdtpMessageBase message/*, int reattemptCount = 0, int period = 5000*/)
 	{
 		new Thread(() => sendMessage(message)) { IsBackground = true }.Start();
 
-		if (reattemptCount > 0)
-			return new AsyncTimer(self => 
-			{
-				if (self.getTimeoutCount() > reattemptCount)
-					self.stop(false, true);
-				else if (isRunning)
-				{
-					sendMessage(message);
-				}
+		// if (reattemptCount > 0)
+		// 	return new AsyncTimer(self => 
+		// 	{
+		// 		if (self.getTimeoutCount() > reattemptCount)
+		// 			self.stop(false, true);
+		// 		else if (isRunning)
+		// 		{
+		// 			sendMessage(message);
+		// 		}
 
-			}, period).start();
+		// 	}, period).start();
 
-		return null;
+		// return null;
 	}
 
-	public abstract T sendMessage<T>(T message) where T : SpdtpMessage;
+	public abstract T sendMessage<T>(T message) where T : SpdtpMessageBase;
 
 	protected abstract void receiveLoop();
 
-	public abstract bool attemptResend(SpdtpMessage message);
+	public abstract bool attemptResend(SpdtpMessageBase message);
 
 	public abstract void resetResendAttempts(int to = 0);
 
-	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, SpdtpMessage keepAliveMessage*/);
+	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, SpdtpMessageBase keepAliveMessage*/);
 
 	public abstract void handleTransmittedResource(ResourceTransmission finishedResourceTransmission);
 
