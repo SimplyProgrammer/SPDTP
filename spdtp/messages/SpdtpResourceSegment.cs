@@ -53,8 +53,8 @@ public class SpdtpResourceSegment : SpdtpMessage
 			Buffer.BlockCopy(Utils.getBytes((int) crc32), 0, bytes, bytes.Length-4, 4);
 			return bytes;
 		}
-		
-		var crc16 = Crc16.ComputeChecksum(Crc16Algorithm.Standard, bytes, 0, bytes.Length-4);
+
+		var crc16 = Crc16.ComputeChecksum(Crc16Algorithm.Standard, bytes, 0, bytes.Length-2);
 		Buffer.BlockCopy(Utils.getBytes(crc16), 0, bytes, bytes.Length-2, 2);
 		return bytes;
 	}
@@ -69,10 +69,11 @@ public class SpdtpResourceSegment : SpdtpMessage
 
 		if (bytes.Length > 10) // Has payload
 		{
-			payload = new byte[bytes.Length-10];
-			Buffer.BlockCopy(bytes, 8, bytes, 0, payload.Length);
+			payload = new byte[bytes.Length-8-4];
+			Buffer.BlockCopy(bytes, 8, payload, 0, payload.Length);
 
-			isValid = Crc32.ComputeChecksum(bytes, 0, bytes.Length-2) == (uint) Utils.getInt(bytes, bytes.Length-2);
+			// Console.WriteLine(Crc32.ComputeChecksum(bytes, 0, bytes.Length-4) + ", " + (uint) Utils.getInt(bytes, bytes.Length-4));
+			isValid = Crc32.ComputeChecksum(bytes, 0, bytes.Length-4) == (uint) Utils.getInt(bytes, bytes.Length-4);
 			return this;
 		}
 

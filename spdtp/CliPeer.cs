@@ -25,7 +25,7 @@ public class CliPeer : Connection
 	protected int standardKeepAlivePeriod = 5000;
 
 	protected bool _receiveInterrupt;
-	internal int _testingResponseErrorCount = 0;
+	internal int _testingErrorCount = 0, everyNthError = 0;
 
 	protected String saveDirectory = Environment.ExpandEnvironmentVariables("%userprofile%/downloads/");
 	// protected int _interruptedLatency = 0;
@@ -44,15 +44,18 @@ public class CliPeer : Connection
 			str += "Type 'open' to change the segment's payload size of the session!\n";
 			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
+			str += "Type 'save-dir <valid directory path>' to specify where to save received files!\n";
 
-			str += "Transmissions: {\n";
-
-			foreach(KeyValuePair<int, ResourceTransmission> entry in session.getTransmissions())
+			if (verbose)
 			{
-				str += entry.Key + ": " + entry.Value.ToString() + "\n";
-			}
+				str += "Transmissions: {\n";
 
-			str += "}";
+				foreach(KeyValuePair<int, ResourceTransmission> entry in session.getTransmissions())
+				{
+					str += entry.Key + ": " + entry.Value.ToString() + "\n";
+				}
+				str += "}";
+			}
 		}
 		else
 		{
@@ -83,7 +86,7 @@ public class CliPeer : Connection
 				{
 					try
 					{
-						_testingResponseErrorCount = int.Parse(userInput.Substring(3));
+						_testingErrorCount = int.Parse(userInput.Substring(3));
 					}
 					catch (Exception ex)
 					{
@@ -149,9 +152,9 @@ public class CliPeer : Connection
 						
 						byte[] bytes = new byte[resource.Length];
 						resource.Read(bytes, 0, bytes.Length);
-						resource.Close();
 
 						session.sendResource(bytes, resource/*, args.Length > 1 && args[1] == "-e"*/);
+						resource.Close();
 					}
 					else
 					{
@@ -189,15 +192,43 @@ public class CliPeer : Connection
 					}
 
 					if (args.Length > 2 && args[2] == "-e")
-						_testingResponseErrorCount++;
+						_testingErrorCount++;
 					pendingNegotiationMessage = openSession(segmentPayloadSize, standardKeepAlivePeriod);
 					if (segmentPayloadSize < 10)
 						Console.WriteLine("Warning: Segment's payload size is too small for any reasonable communication. Consider setting it to at least 10 bytes!");
 					else if (segmentPayloadSize > MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE)
 						Console.WriteLine("Warning: Segment's payload size is too big and lower layer fragmentation can be expected, reducing the performance! Consider setting it to no more than " + MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE + "!");
 				}
+				else if (userInput.StartsWith("save-dir"))
+				{
+					String[] args = userInput.Split(' ');
+					
+					if (args.Length > 1)
+					{
+						String pathToSave = args[1];
+						if (pathToSave.Length < 1)
+							pathToSave = saveDirectory;
+
+						try
+						{
+							Directory.CreateDirectory(Path.GetDirectoryName(pathToSave));
+						}
+						catch (Exception ex)
+						{
+							pathToSave = Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "downloads");
+						}
+
+						saveDirectory = pathToSave;
+					}
+
+					Console.WriteLine(saveDirectory);
+				}
 				else
 					Console.WriteLine("Unknown! Please type  ?");
+			}
+			catch (IOException ex)
+			{
+				Console.Error.WriteLine("Error has occurred: " + ex.Message);
 			}
 			catch (Exception ex)
 			{
@@ -209,57 +240,30 @@ public class CliPeer : Connection
 	public override void handleTransmittedResource(ResourceTransmission finishedResourceTransmission)
 	{
 		byte[] bytes = finishedResourceTransmission.reconstructResource(); // TODO TEST
-		if (finishedResourceTransmission.getMetadata().getResourceName().StartsWith(TEXT_MSG_MARK))
+		var time = finishedResourceTransmission.getBenchmarkTimer().ElapsedMilliseconds;
+		if (finishedResourceTransmission.getMetadata().getResourceName().StartsWith(TEXT_MSG_MARK, StringComparison.Ordinal))
 		{
-			Console.WriteLine("Message from other peer (" + remoteSocket.ToString + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length + " total bytes :");
+			Console.WriteLine("Text message from other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length + " total bytes in " + time + "ms :");
 			Console.WriteLine(Encoding.ASCII.GetString(bytes));
 
 			return;
 		}
 		
-		while (true)
-		{
-			try
-			{
-				Console.WriteLine("Incoming file resource from the other peer (" + remoteSocket.ToString + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length + " total bytes!\nSpecify path to where do you want to save it (" + saveDirectory + "):");
-				
-				String pathToSave = Console.ReadLine();
-				if (pathToSave.Length < 1)
-					pathToSave = saveDirectory;
+		Console.WriteLine("Incoming file \"" + finishedResourceTransmission.getMetadata().getResourceName() + "\" from the other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length  + " total bytes in " + time + "ms :" +
+							"Saving into \"" + saveDirectory + "\"!");
 
-				try
-				{
-					Directory.CreateDirectory(Path.GetDirectoryName(pathToSave));
-				}
-				catch (Exception ex)
-				{
-					pathToSave = Environment.ExpandEnvironmentVariables("%userprofile%/downloads/");
-				}
+		var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
+		fs.Write(bytes, 0, bytes.Length);
 
-				saveDirectory = pathToSave;
-
-				var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
-				fs.Write(bytes, 0, bytes.Length);
-				fs.Close();
-
-				Console.WriteLine(fs.Length + " bytes were written into " + fs.Name);
-				return;
-			}
-			catch (Exception ex) // Should not happen (hopefully)
-			{
-				Console.Error.WriteLine("Unable to save the resource, because: " + ex);
-				Console.WriteLine("Do you want to retry (y/n)?");
-				if (Console.ReadLine().ToLower().StartsWith("n"))
-					return;
-			}
-		}
+		Console.WriteLine(fs.Length + " bytes were written into " + fs.Name);
+		fs.Close();
 	}
 
 	public override T sendMessage<T>(T message)
 	{
 		byte[] msgBytes = message.getBytes();
 
-		bool err = _testingResponseErrorCount-- > 0;
+		bool err = _testingErrorCount-- > 0;
 		if (err)
 			Utils.introduceRandErrors(msgBytes);
 		udpClient.Send(msgBytes, msgBytes.Length, remoteSocket);
@@ -358,7 +362,7 @@ public class CliPeer : Connection
 
 			if (pendingNegotiationMessage == null)
 			{
-				sendMessageAsync(negotiationMessage.createResendRequest());
+				sendMessageAsync(negotiationMessage.createResendRequest(negotiationMessage.getKeepAliveFlag()));
 				Console.WriteLine("Resend requested!");
 			}
 			else if (attemptResend(pendingNegotiationMessage))
@@ -380,7 +384,7 @@ public class CliPeer : Connection
 			}
 
 			keepAlive.setTimeout(standardKeepAlivePeriod);
-			sendMessageAsync(negotiationMessage.createResponse(), 0, 0/*, _testingResponseErrorCount-- > 0*/);
+			sendMessageAsync(negotiationMessage.createResponse(negotiationMessage.getKeepAliveFlag()), 0, 0/*, _testingErrorCount-- > 0*/);
 			// Console.WriteLine(msg);
 			return true;
 		}
@@ -419,7 +423,7 @@ public class CliPeer : Connection
 		{
 			if (pendingNegotiationMessage != null)
 				Console.WriteLine("Keep alive missed by the other peer...");
-			pendingNegotiationMessage = sendMessage(session.getMetadata());
+			pendingNegotiationMessage = sendMessage(session.getMetadata().clone(KEEP_ALIVE));
 		}
 		else
 			Console.WriteLine("Please use 'open' to open the communication session or the connection will be terminated soon!");

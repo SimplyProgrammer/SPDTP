@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using static SpdtpMessage;
 using static SpdtpResourceInfoMessage;
 
@@ -7,6 +8,10 @@ using static SpdtpResourceInfoMessage;
 */
 public class ResourceTransmission
 {
+	public static readonly int UNPROCESSED = 0;
+	public static readonly int PROCESSED = 1;
+	public static readonly int FINISHED = 2;
+
 	protected Connection connection;
 
 	protected SpdtpResourceInfoMessage resourceMetadata;
@@ -17,18 +22,20 @@ public class ResourceTransmission
 	protected int processedSegmentCount, expectedSegmentCount;
 	protected int receivedErrorCount = 0;
 
-	protected bool isRunning;
+	protected Stopwatch benchmarkTimer;
 
 	public ResourceTransmission(Connection connection, SpdtpResourceInfoMessage resourceMetadata, SpdtpResourceSegment[] segments = null)
 	{
 		this.connection = connection;
 		setSegments(segments);
 		this.resourceMetadata = resourceMetadata;
+
+		segmentPayloadSize = connection.getSession().getMetadata().getSegmentPayloadSize();
 	}
 
 	public override String ToString()
 	{
-		return ToString();
+		return ToString(true);
 	}
 
 	public String ToString(bool verbose = true)
@@ -50,13 +57,11 @@ public class ResourceTransmission
 		return str + "\n]";
 	}
 
-	public void initiateTransmission()
+	public void start()
 	{
 		// Console.WriteLine(">" + ToString());
-		isRunning = true;
-
 		var senders = new Thread[expectedSegmentCount];
-		var startTime = DateTime.Now;
+		benchmarkTimer = Stopwatch.StartNew();
 		for (int i = 0; i < expectedSegmentCount; i++)
 		{
 			senders[i] = sendSegmentAsync(i);
@@ -65,10 +70,10 @@ public class ResourceTransmission
 		new Thread(() => {
 			for (int i = 0; i < expectedSegmentCount; i++)
 				senders[i].Join();
+			benchmarkTimer.Stop();
 
-			Console.WriteLine("All segments were send in " + (DateTime.Now - startTime).Seconds + "s!");
+			Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
 		}) { IsBackground = true }.Start();
-
 	}
 
 	public Thread sendSegmentAsync(int segment, String message = "Sending ")
@@ -88,10 +93,12 @@ public class ResourceTransmission
 	public void askToResendMissing(int count = 1)
 	{
 		new Thread(() => {
-			for (int i = 0, countToResend = count; isRunning && i < expectedSegmentCount; i++)
+			for (int i = 0, countToResend = count; i < expectedSegmentCount; i++)
 			{
 				if (segments[i] == null)
 				{
+					if (isFinished())
+						break;
 					connection.sendMessageAsync(new SpdtpResourceSegment(0, i, resourceMetadata.getResourceIdentifier()));
 					connection.getKeepAlive().restart();
 					if (countToResend-- > 0)
@@ -101,12 +108,12 @@ public class ResourceTransmission
 		}) { IsBackground = true }.Start();;
 	}
 
-	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
+	public int handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
 		if (resourceSegment.isState(STATE_REQUEST))
 		{
 			if (resourceSegment.getPayload() == null)
-				return false;
+				return UNPROCESSED;
 
 			int segmentID = resourceSegment.getSegmentID();
 			if (!resourceSegment.validate())
@@ -123,7 +130,7 @@ public class ResourceTransmission
 				}
 
 				receivedErrorCount++;
-				return true;
+				return PROCESSED;
 			}
 
 			// TODO timeout
@@ -131,12 +138,20 @@ public class ResourceTransmission
 			{
 				segments[segmentID] = resourceSegment;
 				
+				if (processedSegmentCount < 1)
+					benchmarkTimer = Stopwatch.StartNew();
 				processedSegmentCount++;
 				if (receivedErrorCount > 0)
 					receivedErrorCount--;
+
 				Console.WriteLine("Segment " + resourceSegment + " received successfully!");
+				if (isFinished())
+				{
+					stop();
+					return FINISHED;
+				}
 			}
-			return true;
+			return PROCESSED;
 		}
 
 		if (resourceSegment.isState(STATE_RESEND_REQUEST))
@@ -145,17 +160,17 @@ public class ResourceTransmission
 			{
 				// TODO
 			}
-			return true;
+			return PROCESSED;
 		}
 
-		return false;
+		return UNPROCESSED;
 	}
 
 	/**
 	* Fragment the resource and populate the SpdtpResourceSegment array...
 	* Remember to initialize segments[] correctly in advance...
 	*/
-	public ResourceTransmission initializeResourceTransmission(byte[] resourceBytes, int segmentPayloadSize)
+	public ResourceTransmission initializeResourceTransmission(byte[] resourceBytes)
 	{
 		if (segments == null)
 			return null;
@@ -172,7 +187,6 @@ public class ResourceTransmission
 			segments[i] = new SpdtpResourceSegment(STATE_REQUEST, i, resourceIdentifier, payload);
 		}
 
-		this.segmentPayloadSize = segmentPayloadSize;
 		return this;
 	}
 
@@ -187,9 +201,12 @@ public class ResourceTransmission
 		byte[] buffer = new byte[segmentPayloadSize * processedSegmentCount];
 		int realResourceLength = 0;
 
+		// Console.WriteLine(this);
+
 		for (int i = 0; i < processedSegmentCount; i++)
 		{
 			byte[] payload = segments[i].getPayload();
+			// Console.WriteLine(buffer.Length + ", " + (i * segmentPayloadSize) + ", " + payload.Length);
 			Array.Copy(payload, 0, buffer, i * segmentPayloadSize, payload.Length);
 
 			realResourceLength += payload.Length;
@@ -200,9 +217,15 @@ public class ResourceTransmission
 		return resourceBytes;
 	}
 
-	public void finish()
+	protected bool isFinished()
 	{
-		isRunning = false;
+		return processedSegmentCount >= expectedSegmentCount;
+	}
+
+	public void stop()
+	{
+		benchmarkTimer.Stop();
+		// isRunning = false;
 	}
 
 	public void setSegments(SpdtpResourceSegment[] segments)
@@ -232,11 +255,6 @@ public class ResourceTransmission
 	{
 		this.expectedSegmentCount = expectedSegmentCount;
 	}
-	
-	public bool isFinished()
-	{
-		return processedSegmentCount >= expectedSegmentCount;
-	}
 
 	// public void setProcessedSegmentCount(int processed)
 	// {
@@ -246,5 +264,10 @@ public class ResourceTransmission
 	public SpdtpResourceInfoMessage getMetadata()
 	{
 		return resourceMetadata;
+	}
+
+	public Stopwatch getBenchmarkTimer()
+	{
+		return benchmarkTimer;
 	}
 }

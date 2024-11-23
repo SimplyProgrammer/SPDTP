@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using static SpdtpMessage;
+using static SpdtpResourceInfoMessage;
 
 public class Program
 {
@@ -96,6 +97,40 @@ public class Program
 		// var fs = new FileStream("./data/_results/_test_7221_2mb.jpg", FileMode.Create, FileAccess.Write);
 		// fs.Write(reconstructedBytes, 0, reconstructedBytes.Length);
 		// fs.Close();
+
+		// var spdtpMessage = new SpdtpResourceSegment(STATE_REQUEST, 0, 1456, new byte[] {100, 101, 102});
+		
+		// Console.WriteLine(spdtpMessage);
+		// Console.WriteLine(spdtpMessage.validate());
+		// Console.WriteLine(spdtpMessage.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(spdtpMessage.getBytes()) + "\n");
+
+		// var newHeader = Utils.introduceRandErrors(spdtpMessage.getBytes(), 0);
+
+		// SpdtpResourceSegment newSpdtpMessage = (SpdtpResourceSegment)SpdtpMessage.newMessageFromBytes(newHeader);
+
+		// Console.WriteLine(newSpdtpMessage);
+		// Console.WriteLine(newSpdtpMessage.validate());
+		// Console.WriteLine(newSpdtpMessage.getResourceIdentifier());
+		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(Utils.formatHeader(newHeader)+ "\n\n"); 
+
+		// var responseMsg = spdtpMessage.createResendRequest();
+		
+		// Console.WriteLine(responseMsg);
+		// Console.WriteLine(responseMsg.validate());
+		// Console.WriteLine(responseMsg.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(responseMsg.getBytes()) + "\n");
+
+		// var newResponseHeader = Utils.introduceRandErrors(responseMsg.getBytes(), 0);
+
+		// SpdtpResourceSegment newResponseMsg = (SpdtpResourceSegment) newMessageFromBytes(newResponseHeader);
+
+		// Console.WriteLine(newResponseMsg);
+		// Console.WriteLine(newResponseMsg.validate());
+		// Console.WriteLine(newResponseMsg.getResourceIdentifier());
+		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(Utils.formatHeader(newResponseHeader)); 
 	}
 
 	public static void Main(string[] args)

@@ -9,7 +9,7 @@ public abstract class SpdtpMessage
 	public static readonly byte INCOMING_RESOURCE_INFO = 0b1000_0000;
 	public static readonly byte RESOURCE_SEGMENT = 0b1100_0000;
 
-	// public static readonly byte KEEP_ALIVE = 0b0010_0000;
+	public static readonly byte KEEP_ALIVE = 0b0010_0000;
 
 	public static readonly byte STATE_RESEND_REQUEST = 0; //NACK
 	public static readonly byte STATE_REQUEST = 1; //SYN
@@ -59,23 +59,30 @@ public abstract class SpdtpMessage
 		return getTransmissionState() == state;
 	}
 
-	// public int getKeepAliveFlag()
-	// {
-	// 	return messageFlags & 0b0010_0000;
-	// }
+	public byte getKeepAliveFlag()
+	{
+		return (byte) (messageFlags & 0b0010_0000);
+	}
 
 	public static SpdtpMessage newMessageFromBytes(byte[] bytes)
 	{
-		if (bytes.Length == 4)
+		try
 		{
-			return new SpdtpNegotiationMessage().setFromBytes(bytes);
-		}
+			if (bytes.Length == 4)
+			{
+				return new SpdtpNegotiationMessage().setFromBytes(bytes);
+			}
 
-		if (bytes.Length <= 70 && (bytes[0] & RESOURCE_SEGMENT) == 0)
+			if (bytes.Length <= 70 && (bytes[0] & RESOURCE_SEGMENT) != RESOURCE_SEGMENT)
+			{
+				return new SpdtpResourceInfoMessage().setFromBytes(bytes);
+			}
+
+			return new SpdtpResourceSegment().setFromBytes(bytes);
+		}
+		catch (Exception ex) // Should never happen...
 		{
-			return new SpdtpResourceInfoMessage().setFromBytes(bytes);
+			return null;
 		}
-
-		return new SpdtpResourceSegment().setFromBytes(bytes);
 	}
 }

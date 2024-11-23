@@ -32,6 +32,11 @@ public class SpdtpNegotiationMessage : SpdtpMessage
 		return new SpdtpNegotiationMessage((byte) (STATE_RESEND_REQUEST | additionalFlags));
 	}
 
+	public SpdtpNegotiationMessage clone(byte additionalFlags = 0)
+	{
+		return new SpdtpNegotiationMessage((byte) (getMessageFlags() | additionalFlags), getSegmentPayloadSize());
+	}
+
 	public override byte[] getBytes()
 	{
 		byte[] bytes = new byte[4];

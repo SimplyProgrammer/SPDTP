@@ -1,8 +1,9 @@
 using System;
-using System.Net.Http.Headers;
+
 using static SpdtpMessage;
 using static SpdtpResourceInfoMessage;
 using static SpdtpResourceSegment;
+using static ResourceTransmission;
 
 /**
 * This class represents the established session where the real communication is handled...
@@ -67,7 +68,7 @@ public class Session
 		{
 			var transmission = new ResourceTransmission(connection, pendingResourceInfoMessage, new SpdtpResourceSegment[segmentCount]);
 			transmissions.Add(pendingResourceInfoMessage.getResourceIdentifier(), transmission);
-			transmission.initializeResourceTransmission(resourceBytes, metadata.getSegmentPayloadSize());
+			transmission.initializeResourceTransmission(resourceBytes);
 
 			pendingResourceInfoResender = connection.sendMessageAsync(pendingResourceInfoMessage, 2, 5000/*, err*/).setOnStopCallback(handlePendingResourceInfoTimeout);
 
@@ -124,9 +125,9 @@ public class Session
 				return true;
 			}
 
+			Console.WriteLine("Initiated transmission of " + incomingResourceMsg.ToString(true) + "!");
 			transmission.setExpectedSegmentCount(incomingResourceMsg.getSegmentCount());
-			transmission.initiateTransmission();
-			Console.WriteLine("Transmission of " + incomingResourceMsg.ToString(true) + " initiated!");
+			transmission.start();
 
 			pendingResourceInfoMessage = null; // "House keeping..."
 			pendingResourceInfoResender?.stop(false);
@@ -155,7 +156,7 @@ public class Session
 			// transmission.finalize();
 			if (transmissions.Remove(resourceIdentifier)) // ? Maybe do not for caching
 			{
-				transmission.finish();
+				transmission.stop();
 				Console.WriteLine("Resource (" + resourceIdentifier + ") was successfully received by the other peer, resources deallocated!");
 			}
 			return true;
@@ -163,16 +164,14 @@ public class Session
 
 		if (transmission != null)
 		{
-			bool processed = transmission.handleResourceSegmentMsg(resourceSegment);
-			if (transmission.isFinished())
+			int status = transmission.handleResourceSegmentMsg(resourceSegment);
+			if (status >= FINISHED)
 			{
-				transmission.finish();
-
 				connection.sendMessageAsync(newTransmissionSuccessfulResponse(resourceIdentifier));
 				connection.handleTransmittedResource(transmission);
 				transmissions.Remove(resourceIdentifier);
 			}
-			return processed;
+			return status > UNPROCESSED;
 		}
 
 		return false;
