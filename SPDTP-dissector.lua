@@ -15,7 +15,7 @@ local transmissionStateMap = {
 }
 
 -- GENERAL
-local messageFlagsField = ProtoField.uint8("spdtp.flags", "Message flags", base.DEC)
+local messageFlagsField = ProtoField.uint8("spdtp.flags", "Message flags", base.BIN)
 local messageTypeField = ProtoField.uint8("spdtp.message_type", "Message type", base.DEC, messageTypeMap, 0xC0)
 local transmissionStateField = ProtoField.uint8("spdtp.transmission_state", "Transmission state", base.DEC, transmissionStateMap, 0x03)
 
