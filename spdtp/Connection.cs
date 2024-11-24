@@ -36,7 +36,7 @@ public abstract class Connection
 
 		keepAlive = new AsyncTimer(handleKeepAlive, keepAlivePeriod);
 
-		// udpClient.Client.ReceiveBufferSize = 8679304;
+		udpClient.Client.ReceiveBufferSize = 524288000;
 		// udpClient.Client.SendBufferSize = 2169826;
 
 		// Console.WriteLine(udpClient.Client.ReceiveBufferSize + ", " + udpClient.Client.SendBufferSize);

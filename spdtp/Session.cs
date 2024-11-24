@@ -31,21 +31,6 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			entry.Value?.onKeepAlive();
 	}
 
-	public void ensureBufferSize(int size)
-	{
-		size = Math.Min(size, 1073741824);
-
-		if (transmissions.Count <= 1)
-		{
-			connection.getTheClient().ReceiveBufferSize = Math.Min(size, 65535);
-			// udpClient.Client.SendBufferSize = 2169826;
-		}
-		else if (size > connection.getTheClient().ReceiveBufferSize)
-			connection.getTheClient().ReceiveBufferSize = size;
-
-		Console.WriteLine(connection.getTheClient().ReceiveBufferSize );
-	}
-
 	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
 	{
 		if (pendingResourceInfoMessage != null)
@@ -127,10 +112,8 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		{
 			try
 			{
-				int segCount = incomingResourceMsg.getSegmentCount();
 				var transmission = new ResourceTransmission(connection, incomingResourceMsg, new SpdtpResourceSegment[incomingResourceMsg.getSegmentCount()]);
 				transmissions.Add(incomingResourceMsg.getResourceIdentifier(), transmission);
-				ensureBufferSize(segCount * transmission.getSegmentPayloadSize() * 2);
 
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " were initialized successfully, ready for incoming transmission!");
 			}
@@ -153,10 +136,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			}
 
 			Console.WriteLine("Initiated transmission of " + incomingResourceMsg.ToString(true) + "!");
-
-			int segCount = incomingResourceMsg.getSegmentCount();
-			transmission.setExpectedSegmentCount(segCount);
-			ensureBufferSize(segCount * transmission.getSegmentPayloadSize() * 2);
+			transmission.setExpectedSegmentCount(incomingResourceMsg.getSegmentCount());
 			transmission.start();
 
 			pendingResourceInfoMessage = null; // "House keeping..."
