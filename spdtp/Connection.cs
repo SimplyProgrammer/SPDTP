@@ -35,6 +35,9 @@ public abstract class Connection
 		udpClient = new UdpClient(localSocket);
 
 		keepAlive = new AsyncTimer(handleKeepAlive, keepAlivePeriod);
+
+		udpClient.Client.ReceiveBufferSize = 131072;
+		udpClient.Client.SendBufferSize = 131072;
 	}
 
 	public override string ToString()

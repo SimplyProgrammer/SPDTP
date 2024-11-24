@@ -192,13 +192,14 @@ public class Program
 					remoteIpAndPort[0] = localIpAndPort[0];
 
 				int remotePort = remoteIpAndPort[1].StartsWith("+") ? localPort+1 : (remoteIpAndPort[1].StartsWith("-") ? localPort-1 : short.Parse(remoteIpAndPort[1]));
-				remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1")), remotePort);
+				remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1").Replace("ip", ips[0])), remotePort);
 
 				var peer = new CliPeer(localPoint, remotePoint);
 				peer.verbose = args.Length > 1 && args[1].StartsWith("-") && args[1].Contains("v");
 				peer.start();
 			}
-			catch (Exception ex) {
+			catch (Exception ex) 
+			{
 				Console.Error.WriteLine("Error has occurred: " + ex);
 			}
 		}

@@ -18,7 +18,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	protected int processedSegmentCount, expectedSegmentCount;
 	protected int receivedErrorCount = 0;
 
-	protected int lastErrorIndex = 0;
+	// protected int lastErrorIndex = 0;
 
 	protected Stopwatch benchmarkTimer;
 
@@ -72,19 +72,20 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 		// 	Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
 		// }) { IsBackground = true }.Start();
 
-		new Thread(() => { // Just 1 thread so we are not blocking receive loop
-			for (int i = 0; i < expectedSegmentCount; i++)
-			{
-				connection.sendMessage(segments[i]);
-				connection.getKeepAlive().restart();
-				processedSegmentCount++;
+		if (segments.Length != expectedSegmentCount)
+			Console.WriteLine("Warning segment.Length does not match expectedSegmentCount!");
 
-				Console.WriteLine("Sending " + segments[i] + "!");
-			}
+		for (int i = 0; i < expectedSegmentCount; i++)
+		{
+			connection.sendMessage(segments[i]);
+			connection.getKeepAlive().restart();
+			processedSegmentCount++;
 
-			benchmarkTimer.Stop();
-			Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
-		}) { IsBackground = true }.Start();
+			// Console.WriteLine("Sending " + segments[i] + "!");
+		}
+
+		benchmarkTimer.Stop();
+		Console.WriteLine("All segments of " + ToString(false) + " were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
 	}
 
 	// public Thread sendSegmentAsync(int segment, String message = "Sending ")
@@ -104,19 +105,16 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public void askToResendMissing(int count = 1)
 	{
 		new Thread(() => {
-			for (int i = lastErrorIndex, countToResend = count < 0 ? expectedSegmentCount - processedSegmentCount : count; i < expectedSegmentCount; i++)
+			for (int i = 0; i < expectedSegmentCount; i++)
 			{
 				if (segments[i] == null)
 				{
-					if (isFinished())
+					if (count-- < 1 || isFinished())
 						break;
 
 					connection.sendMessage(new SpdtpResourceSegment(0, i, metadata.getResourceIdentifier()));
 					connection.getKeepAlive().restart();
-					lastErrorIndex = i;
-
-					if (countToResend-- > 0)
-						break;
+					// lastErrorIndex = i
 				}
 			}
 		}) { IsBackground = true }.Start();;
@@ -134,7 +132,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 			{
 				if (segmentID < expectedSegmentCount && segments[segmentID] == null) // Segment id seems to be legit, we can trust it...
 				{
-					connection.sendMessageAsync(resourceSegment.createResendRequest());
+					connection.sendMessage(resourceSegment.createResendRequest());
 					Console.WriteLine(metadata.getResourceIdentifier() + ": Segment " + segmentID + " was received with errors, asking for resend!");
 				}
 				else // This should be very rare...
@@ -193,7 +191,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public override void onKeepAlive()
 	{
 		if (!isFinished())
-			askToResendMissing();
+			askToResendMissing(getExpectedSegmentCount() - processedSegmentCount);
 	}
 
 	/**

@@ -58,7 +58,7 @@ public class CliPeer : Connection
 				str += "-kpal-rest: Restart the keep-alive timer immediately.\n";
 				str += "-cls-res: Clear all active resource transmissions.\n";
 				str += "-verbo: Toggle verbose logging on/off.\n";
-				str += "-interr: Toggle simulated interruptions in receiving messages.\n";
+				str += "-interr <delay in ms>: Toggle simulated interruptions in receiving messages.\n";
 			}
 		}
 		else
@@ -120,7 +120,9 @@ public class CliPeer : Connection
 							newKpAlivePeriod = standardKeepAlivePeriod;
 					}
 					catch (Exception ex)
-					{}
+					{
+						Console.Error.WriteLine("Error has occurred: " + ex);
+					}
 
 					Console.WriteLine(newKpAlivePeriod);
 					keepAlive.setTimeout(standardKeepAlivePeriod = newKpAlivePeriod);
@@ -139,15 +141,26 @@ public class CliPeer : Connection
 				}
 				else if (userInput.StartsWith("-interr"))
 				{
-					// String[] args = userInput.Split(' ');
-					// if (args.Length > 1)
-					// 	_interruptedLatency = int.Parse(args[1]);
+					new Thread(() => {
+						try
+						{
+							int _interruptedLatency = 0;
+							String[] args = userInput.Split(' ');
+							if (args.Length > 1)
+								_interruptedLatency = int.Parse(args[1]);
+							Thread.Sleep(_interruptedLatency);
+						}
+						catch (Exception ex)
+						{
+							Console.Error.WriteLine("Error has occurred: " + ex);
+						}
 
-					if (_receiveInterrupt ^= true)
-						keepAlive.stop();
-					else
-						keepAlive.start();
-					Console.WriteLine(_receiveInterrupt);
+						if (_receiveInterrupt ^= true)
+							keepAlive.stop();
+						else
+							keepAlive.start();
+						Console.WriteLine(_receiveInterrupt);
+					}) { IsBackground = true }.Start();
 				}
 
 				else if (userInput.StartsWith("#")) // Temp
@@ -294,6 +307,7 @@ public class CliPeer : Connection
 				wasErr = true;
 			}
 		}
+
 		udpClient.Send(msgBytes, msgBytes.Length, remoteSocket);
 
 		if (verbose)
