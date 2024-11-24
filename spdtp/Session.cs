@@ -47,14 +47,6 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		}
 		else if (resourceDescriptor is String)
 		{
-			// if (resourceBytes.Length <= 64) // Send textual msg directly without fragmentation if 64 chars or less...
-			// {
-			// 	pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, 0, resourceDescriptor.ToString());
-
-			// 	connection.sendMessage(pendingResourceInfoMessage, 0, 0, err).setOnStopCallback(handlePendingResourceInfoTimeout);
-			// 	return pendingResourceInfoMessage;
-			// }
-			
 			segmentCount = (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1;
 			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
 		}
@@ -162,7 +154,6 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		var transmission = transmissions.GetValueOrDefault(resourceIdentifier);
 		if (resourceSegment.getSegmentID() == TRANSMISSION_SUCCESSFUL_24x1)
 		{
-			// transmission.finalize();
 			if (transmissions.Remove(resourceIdentifier)) // ? Maybe do not for caching
 			{
 				transmission.stop();

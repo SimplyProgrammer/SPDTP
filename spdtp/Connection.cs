@@ -75,25 +75,6 @@ public abstract class Connection
 		close();
 	}
 
-	/*public virtual void sendMessage(SpdtpMessageBase message/*, int reattemptCount = 0, int period = 5000)
-	{
-		new Thread(() => sendMessage(message)) { IsBackground = true }.Start();
-
-		// if (reattemptCount > 0)
-		// 	return new AsyncTimer(self => 
-		// 	{
-		// 		if (self.getTimeoutCount() > reattemptCount)
-		// 			self.stop(false, true);
-		// 		else if (isRunning)
-		// 		{
-		// 			sendMessage(message);
-		// 		}
-
-		// 	}, period).start();
-
-		// return null;
-	}*/
-
 	public abstract T sendMessage<T>(T message) where T : SpdtpMessageBase;
 
 	protected abstract void receiveLoop();

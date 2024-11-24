@@ -55,22 +55,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 
 	public void start()
 	{
-		// Console.WriteLine(">" + ToString());
 		benchmarkTimer = Stopwatch.StartNew();
-
-		// var senders = new Thread[expectedSegmentCount]; // Creating all those threads causes BIG overhead making multithreaded abroach 2x slower...
-		// for (int i = 0; i < expectedSegmentCount; i++)
-		// {
-		// 	senders[i] = sendSegmentAsync(i);
-		// }
-
-		// new Thread(() => {
-		// 	for (int i = 0; i < expectedSegmentCount; i++)
-		// 		senders[i].Join();
-		// 	benchmarkTimer.Stop();
-
-		// 	Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
-		// }) { IsBackground = true }.Start();
 
 		if (segments.Length != expectedSegmentCount)
 			Console.WriteLine("Warning segment.Length does not match expectedSegmentCount!");
@@ -83,27 +68,13 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 				connection.getKeepAlive().restart();
 				processedSegmentCount++;
 
-				// Console.WriteLine("Sending " + segments[i] + "!");
+				Console.WriteLine("Sending " + segments[i] + "!");
 			}
 
 			benchmarkTimer.Stop();
 			Console.WriteLine("All segments of " + ToString(false) + " were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
 		}) { IsBackground = true }.Start();
 	}
-
-	// public Thread sendSegmentAsync(int segment, String message = "Sending ")
-	// {
-	// 	var sender = new Thread(() => {
-	// 		connection.sendMessage(segments[segment]);
-	// 		connection.getKeepAlive().restart();
-	// 		processedSegmentCount++;
-
-	// 		Console.WriteLine(message + segments[segment] + " asynchronously!");
-	// 	}) { IsBackground = true };
-		
-	// 	sender.Start();
-	// 	return sender;
-	// }
 
 	public void askToResendMissing(int count = 1)
 	{
