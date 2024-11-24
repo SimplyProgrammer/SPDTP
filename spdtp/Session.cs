@@ -25,10 +25,25 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 	public override void onKeepAlive()
 	{
 		if (pendingResourceInfoMessage != null)
-			connection.sendMessageAsync(pendingResourceInfoMessage/*, 2, 5000, err*/);
+			connection.sendMessage(pendingResourceInfoMessage/*, 2, 5000, err*/);
 
 		foreach (var entry in transmissions)
 			entry.Value?.onKeepAlive();
+	}
+
+	public void ensureBufferSize(int size)
+	{
+		size = Math.Min(size, 1073741824);
+
+		if (transmissions.Count <= 1)
+		{
+			connection.getTheClient().ReceiveBufferSize = Math.Min(size, 65535);
+			// udpClient.Client.SendBufferSize = 2169826;
+		}
+		else if (size > connection.getTheClient().ReceiveBufferSize)
+			connection.getTheClient().ReceiveBufferSize = size;
+
+		Console.WriteLine(connection.getTheClient().ReceiveBufferSize );
 	}
 
 	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
@@ -51,7 +66,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			// {
 			// 	pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, 0, resourceDescriptor.ToString());
 
-			// 	connection.sendMessageAsync(pendingResourceInfoMessage, 0, 0, err).setOnStopCallback(handlePendingResourceInfoTimeout);
+			// 	connection.sendMessage(pendingResourceInfoMessage, 0, 0, err).setOnStopCallback(handlePendingResourceInfoTimeout);
 			// 	return pendingResourceInfoMessage;
 			// }
 			
@@ -70,7 +85,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			transmissions.Add(pendingResourceInfoMessage.getResourceIdentifier(), transmission);
 			transmission.initializeResourceTransmission(resourceBytes);
 
-			connection.sendMessageAsync(pendingResourceInfoMessage/*, 2, 5000, err*/);
+			connection.sendMessage(pendingResourceInfoMessage/*, 2, 5000, err*/);
 
 			Console.WriteLine("Informing the other peer about incoming: " + pendingResourceInfoMessage.ToString(true) + "!");
 		}
@@ -100,7 +115,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 
 			if (pendingResourceInfoMessage == null)
 			{
-				connection.sendMessageAsync(incomingResourceMsg.createResendRequest());
+				connection.sendMessage(incomingResourceMsg.createResendRequest());
 				Console.WriteLine("Resend requested!");
 			}
 			else if (connection.attemptResend(pendingResourceInfoMessage))
@@ -112,8 +127,10 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		{
 			try
 			{
+				int segCount = incomingResourceMsg.getSegmentCount();
 				var transmission = new ResourceTransmission(connection, incomingResourceMsg, new SpdtpResourceSegment[incomingResourceMsg.getSegmentCount()]);
 				transmissions.Add(incomingResourceMsg.getResourceIdentifier(), transmission);
+				ensureBufferSize(segCount * transmission.getSegmentPayloadSize() * 2);
 
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " were initialized successfully, ready for incoming transmission!");
 			}
@@ -122,7 +139,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " was already initialized, waiting for incoming transmission!");
 			}
 
-			connection.sendMessageAsync(incomingResourceMsg.createResponse()/*, 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0*/);
+			connection.sendMessage(incomingResourceMsg.createResponse()/*, 0, 0, connection is CliPeer && ((CliPeer) connection)._testingResponseErrorCount-- > 0*/);
 			return true;
 		}
 
@@ -136,7 +153,10 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			}
 
 			Console.WriteLine("Initiated transmission of " + incomingResourceMsg.ToString(true) + "!");
-			transmission.setExpectedSegmentCount(incomingResourceMsg.getSegmentCount());
+
+			int segCount = incomingResourceMsg.getSegmentCount();
+			transmission.setExpectedSegmentCount(segCount);
+			ensureBufferSize(segCount * transmission.getSegmentPayloadSize() * 2);
 			transmission.start();
 
 			pendingResourceInfoMessage = null; // "House keeping..."
@@ -176,7 +196,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			int status = transmission.handleIncomingMessage(resourceSegment);
 			if (status >= FINISHED)
 			{
-				connection.sendMessageAsync(newTransmissionSuccessfulResponse(resourceIdentifier));
+				connection.sendMessage(newTransmissionSuccessfulResponse(resourceIdentifier));
 				connection.handleTransmittedResource(transmission);
 				transmissions.Remove(resourceIdentifier);
 			}

@@ -1,4 +1,3 @@
-
 /**
 * Simple abstraction of communication session...
 */

@@ -364,7 +364,7 @@ public class CliPeer : Connection
 			return false;
 		}
 		
-		sendMessageAsync(message);
+		sendMessage(message);
 		return true;
 	}
 
@@ -389,7 +389,7 @@ public class CliPeer : Connection
 
 			if (pendingNegotiationMessage == null)
 			{
-				sendMessageAsync(negotiationMessage.createResendRequest(negotiationMessage.getKeepAliveFlag()));
+				sendMessage(negotiationMessage.createResendRequest(negotiationMessage.getKeepAliveFlag()));
 				Console.WriteLine("Resend requested!");
 			}
 			else if (attemptResend(pendingNegotiationMessage))
@@ -416,7 +416,7 @@ public class CliPeer : Connection
 			}
 
 			keepAlive.setTimeout(standardKeepAlivePeriod);
-			sendMessageAsync(negotiationMessage.createResponse(negotiationMessage.getKeepAliveFlag())/*, 0, 0, _testingErrorCount-- > 0*/);
+			sendMessage(negotiationMessage.createResponse(negotiationMessage.getKeepAliveFlag())/*, 0, 0, _testingErrorCount-- > 0*/);
 			// Console.WriteLine(msg);
 			return true;
 		}

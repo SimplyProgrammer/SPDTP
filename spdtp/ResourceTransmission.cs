@@ -75,17 +75,20 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 		if (segments.Length != expectedSegmentCount)
 			Console.WriteLine("Warning segment.Length does not match expectedSegmentCount!");
 
-		for (int i = 0; i < expectedSegmentCount; i++)
+		new Thread(() => 
 		{
-			connection.sendMessage(segments[i]);
-			connection.getKeepAlive().restart();
-			processedSegmentCount++;
+			for (int i = 0; i < expectedSegmentCount; i++)
+			{
+				connection.sendMessage(segments[i]);
+				connection.getKeepAlive().restart();
+				processedSegmentCount++;
 
-			// Console.WriteLine("Sending " + segments[i] + "!");
-		}
+				// Console.WriteLine("Sending " + segments[i] + "!");
+			}
 
-		benchmarkTimer.Stop();
-		Console.WriteLine("All segments of " + ToString(false) + " were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
+			benchmarkTimer.Stop();
+			Console.WriteLine("All segments of " + ToString(false) + " were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
+		}) { IsBackground = true }.Start();
 	}
 
 	// public Thread sendSegmentAsync(int segment, String message = "Sending ")
@@ -117,7 +120,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 					// lastErrorIndex = i
 				}
 			}
-		}) { IsBackground = true }.Start();;
+		}) { IsBackground = true }.Start();
 	}
 
 	public override int handleIncomingMessage(SpdtpResourceSegment resourceSegment)
@@ -180,7 +183,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 					segmentID %= expectedSegmentCount;
 			}
 
-			connection.sendMessageAsync(segments[segmentID]);
+			connection.sendMessage(segments[segmentID]);
 			Console.WriteLine(metadata.getResourceIdentifier() + ": Resending segment " + segmentID + "!");
 			return PROCESSED;
 		}

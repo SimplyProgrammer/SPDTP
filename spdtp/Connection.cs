@@ -36,8 +36,10 @@ public abstract class Connection
 
 		keepAlive = new AsyncTimer(handleKeepAlive, keepAlivePeriod);
 
-		udpClient.Client.ReceiveBufferSize = 131072;
-		udpClient.Client.SendBufferSize = 131072;
+		// udpClient.Client.ReceiveBufferSize = 8679304;
+		// udpClient.Client.SendBufferSize = 2169826;
+
+		// Console.WriteLine(udpClient.Client.ReceiveBufferSize + ", " + udpClient.Client.SendBufferSize);
 	}
 
 	public override string ToString()
@@ -73,7 +75,7 @@ public abstract class Connection
 		close();
 	}
 
-	public virtual void sendMessageAsync(SpdtpMessageBase message/*, int reattemptCount = 0, int period = 5000*/)
+	/*public virtual void sendMessage(SpdtpMessageBase message/*, int reattemptCount = 0, int period = 5000)
 	{
 		new Thread(() => sendMessage(message)) { IsBackground = true }.Start();
 
@@ -90,7 +92,7 @@ public abstract class Connection
 		// 	}, period).start();
 
 		// return null;
-	}
+	}*/
 
 	public abstract T sendMessage<T>(T message) where T : SpdtpMessageBase;
 
@@ -150,5 +152,10 @@ public abstract class Connection
 	public AsyncTimer getKeepAlive()
 	{
 		return keepAlive;
+	}
+
+	public Socket getTheClient()
+	{
+		return udpClient.Client;
 	}
 }
