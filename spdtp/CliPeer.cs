@@ -208,11 +208,15 @@ public class CliPeer : Connection
 
 					if (args.Length > 2 && args[2] == "-e")
 						_testingErrorCount++;
-					pendingNegotiationMessage = openSession(segmentPayloadSize, standardKeepAlivePeriod);
 					if (segmentPayloadSize < 10)
 						Console.WriteLine("Warning: Segment's payload size is too small for any reasonable communication. Consider setting it to at least 10 bytes!");
 					else if (segmentPayloadSize > MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE)
-						Console.WriteLine("Warning: Segment's payload size is too big and lower layer fragmentation can be expected, reducing the performance! Consider setting it to no more than " + MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE + "!");
+					{
+						Console.WriteLine("Warning: Segment's payload size is too big and lower layer fragmentation can be expected! Setting it to " + MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE + "!");
+						segmentPayloadSize = MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE;
+					}
+
+					pendingNegotiationMessage = openSession(segmentPayloadSize, standardKeepAlivePeriod);
 				}
 				else if (userInput.StartsWith("save-dir"))
 				{
@@ -264,8 +268,8 @@ public class CliPeer : Connection
 			return;
 		}
 		
-		Console.WriteLine("Incoming file \"" + finishedResourceTransmission.getMetadata().getResourceName() + "\" from the other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length  + " total bytes in " + time + "ms :" +
-							"Saving into \"" + saveDirectory + "\"!");
+		Console.WriteLine("Incoming file \"" + finishedResourceTransmission.getMetadata().getResourceName() + "\" from the other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length  + " total bytes in " + time + "ms!\n" +
+							"Saving into \"" + saveDirectory + "\" :");
 
 		var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
 		fs.Write(bytes, 0, bytes.Length);
@@ -313,11 +317,8 @@ public class CliPeer : Connection
 				if (verbose)
 					Console.WriteLine("Message received:  " + spdtpMessage + " - " + Utils.formatHeader(rawMsg));
 
-				if (spdtpMessage is SpdtpNegotiationMessage)
-				{
-					if (handleNegotiationMsg((SpdtpNegotiationMessage) spdtpMessage))
-						continue;
-				}
+				if (spdtpMessage is SpdtpNegotiationMessage && handleNegotiationMsg((SpdtpNegotiationMessage) spdtpMessage))
+					continue;
 
 				if (session != null && session.handleIncomingMessage(spdtpMessage))
 					continue;

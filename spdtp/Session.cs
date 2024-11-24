@@ -128,7 +128,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 
 		if (incomingResourceMsg.isState(STATE_RESPONSE))
 		{
-			var transmission = transmissions[incomingResourceMsg.getResourceIdentifier()];
+			var transmission = transmissions.GetValueOrDefault(incomingResourceMsg.getResourceIdentifier());
 			if (transmission == null)
 			{
 				Console.WriteLine("Unable to initiate transmission for " + incomingResourceMsg.ToString(true) + "! Resources were not allocated!");
@@ -159,7 +159,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
 	{
 		int resourceIdentifier = resourceSegment.getResourceIdentifier();
-		var transmission = transmissions[resourceIdentifier];
+		var transmission = transmissions.GetValueOrDefault(resourceIdentifier);
 		if (resourceSegment.getSegmentID() == TRANSMISSION_SUCCESSFUL_24x1)
 		{
 			// transmission.finalize();

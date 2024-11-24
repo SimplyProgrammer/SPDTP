@@ -56,35 +56,50 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public void start()
 	{
 		// Console.WriteLine(">" + ToString());
-		var senders = new Thread[expectedSegmentCount];
 		benchmarkTimer = Stopwatch.StartNew();
-		for (int i = 0; i < expectedSegmentCount; i++)
-		{
-			senders[i] = sendSegmentAsync(i);
-		}
 
-		new Thread(() => {
+		// var senders = new Thread[expectedSegmentCount]; // Creating all those threads causes BIG overhead making multithreaded abroach 2x slower...
+		// for (int i = 0; i < expectedSegmentCount; i++)
+		// {
+		// 	senders[i] = sendSegmentAsync(i);
+		// }
+
+		// new Thread(() => {
+		// 	for (int i = 0; i < expectedSegmentCount; i++)
+		// 		senders[i].Join();
+		// 	benchmarkTimer.Stop();
+
+		// 	Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
+		// }) { IsBackground = true }.Start();
+
+		new Thread(() => { // Just 1 thread so we are not blocking receive loop
 			for (int i = 0; i < expectedSegmentCount; i++)
-				senders[i].Join();
-			benchmarkTimer.Stop();
+			{
+				connection.sendMessage(segments[i]);
+				connection.getKeepAlive().restart();
+				processedSegmentCount++;
 
+				Console.WriteLine("Sending " + segments[i] + "!");
+			}
+
+			benchmarkTimer.Stop();
 			Console.WriteLine("All segments were send in " + benchmarkTimer.ElapsedMilliseconds + "ms!");
 		}) { IsBackground = true }.Start();
 	}
 
-	public Thread sendSegmentAsync(int segment, String message = "Sending ")
-	{
-		var sender = new Thread(() => {
-			connection.sendMessage(segments[segment]);
-			connection.getKeepAlive().restart();
-			processedSegmentCount++;
+	// public Thread sendSegmentAsync(int segment, String message = "Sending ")
+	// {
+	// 	var sender = new Thread(() => {
+	// 		connection.sendMessage(segments[segment]);
+	// 		connection.getKeepAlive().restart();
+	// 		processedSegmentCount++;
 
-			Console.WriteLine(message + segments[segment] + " asynchronously!");
-		}) { IsBackground = true };
+	// 		Console.WriteLine(message + segments[segment] + " asynchronously!");
+	// 	}) { IsBackground = true };
 		
-		sender.Start();
-		return sender;
-	}
+	// 	sender.Start();
+	// 	return sender;
+	// }
 
 	public void askToResendMissing(int count = 1)
 	{
@@ -96,7 +111,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 					if (isFinished())
 						break;
 
-					connection.sendMessageAsync(new SpdtpResourceSegment(0, i, metadata.getResourceIdentifier()));
+					connection.sendMessage(new SpdtpResourceSegment(0, i, metadata.getResourceIdentifier()));
 					connection.getKeepAlive().restart();
 					lastErrorIndex = i;
 
@@ -143,18 +158,18 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 				if (receivedErrorCount > 0)
 					receivedErrorCount--;
 
-				Console.WriteLine(metadata.getResourceIdentifier() + ": Segment " + resourceSegment + " received successfully!");
+				Console.WriteLine("Segment " + resourceSegment + " received successfully!");
 				if (isFinished())
 				{
 					stop();
 					return FINISHED;
 				}
+
+				return PROCESSED;
 			}
-			else
-			{
-				askToResendMissing();
-				Console.WriteLine(metadata.getResourceIdentifier() + ": Segment " + resourceSegment + " was already received, asking to resend first missing one!");
-			}
+
+			askToResendMissing();
+			Console.WriteLine("Segment " + resourceSegment + " was already received, asking to resend first missing one!");
 			return PROCESSED;
 		}
 
