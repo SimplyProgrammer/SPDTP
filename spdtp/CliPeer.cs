@@ -319,7 +319,7 @@ public class CliPeer : Connection
 						continue;
 				}
 
-				if (session != null && session.handleIncomingMessage((SpdtpResourceInfoMessage) spdtpMessage))
+				if (session != null && session.handleIncomingMessage(spdtpMessage))
 					continue;
 
 				Console.WriteLine("Unknown message was received: " + spdtpMessage + "!");

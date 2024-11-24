@@ -4,7 +4,7 @@ using static SpdtpMessageBase;
 using static SpdtpResourceInfoMessage;
 
 /**
-* 
+* Session responsible for transmitting single resource, it exists both on sender and receiver side!
 */
 public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpResourceSegment, int>
 {
@@ -89,7 +89,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public void askToResendMissing(int count = 1)
 	{
 		new Thread(() => {
-			for (int i = lastErrorIndex, countToResend = count; i < expectedSegmentCount; i++)
+			for (int i = lastErrorIndex, countToResend = count < 0 ? expectedSegmentCount - processedSegmentCount : count; i < expectedSegmentCount; i++)
 			{
 				if (segments[i] == null)
 				{
@@ -177,7 +177,8 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 
 	public override void onKeepAlive()
 	{
-		// TODO timeout
+		if (!isFinished())
+			askToResendMissing();
 	}
 
 	/**
@@ -186,7 +187,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	*/
 	public ResourceTransmission initializeResourceTransmission(byte[] resourceBytes)
 	{
-		if (segments == null)
+		if (segments == null || segments.Length < 1)
 			return null;
 
 		int resourceIdentifier = metadata.getResourceIdentifier();
@@ -209,25 +210,19 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	*/
 	public byte[] reconstructResource()
 	{
-		if (segments == null)
+		if (segments == null || segments.Length < 1)
 			return null;
-
-		byte[] buffer = new byte[segmentPayloadSize * processedSegmentCount];
-		int realResourceLength = 0;
 
 		// Console.WriteLine(this);
 
+		byte[] resourceBytes = new byte[segmentPayloadSize * (processedSegmentCount-1) + segments[processedSegmentCount-1].getPayload().Length];
 		for (int i = 0; i < processedSegmentCount; i++)
 		{
 			byte[] payload = segments[i].getPayload();
 			// Console.WriteLine(buffer.Length + ", " + (i * segmentPayloadSize) + ", " + payload.Length);
-			Array.Copy(payload, 0, buffer, i * segmentPayloadSize, payload.Length);
-
-			realResourceLength += payload.Length;
+			Array.Copy(payload, 0, resourceBytes, i * segmentPayloadSize, payload.Length);
 		}
 
-		byte[] resourceBytes = new byte[realResourceLength];
-		Array.Copy(buffer, 0, resourceBytes, 0, realResourceLength);
 		return resourceBytes;
 	}
 
