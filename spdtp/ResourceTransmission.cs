@@ -58,7 +58,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 		benchmarkTimer = Stopwatch.StartNew();
 
 		if (segments.Length != expectedSegmentCount)
-			Console.WriteLine("Warning segment.Length does not match expectedSegmentCount!");
+			Console.WriteLine("Warning segments.Length does not match expectedSegmentCount!");
 
 		new Thread(() => 
 		{
