@@ -1,7 +1,7 @@
 # SPDTP coloring (View->Color Rules->Import...->This file)	
-											bg				fg
+															bg				fg
 @SPDTP Transmission finish@spdtp.segment.id>=16777215@[43690,65535,0][5654,20654,5654]
-@SPDTP End...@spdtp.flags==255@[43690,43690,0][5654,20654,5654]
+@SPDTP End...@spdtp.flags==255@[41000,41000,41000][5654,20654,5654]
 
 @SPDTP Kpal@spdtp.flags & 0b00100000@[0,8224,12079][25700,25700,25700]
 
