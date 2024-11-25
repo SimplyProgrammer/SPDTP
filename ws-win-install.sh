@@ -1,5 +1,6 @@
 #!/bin/bash
 
 # Running this script with gitbash or other tool like that should install it into your WS...
+# If this does not work, just do it manually.
 
-cp -f ./SPDTP-dissector.lua ~/AppData/Roaming/Wireshark/plugins
+mkdir -p ~/AppData/Roaming/Wireshark/plugins/ && cp -f ./SPDTP-dissector.lua $_
