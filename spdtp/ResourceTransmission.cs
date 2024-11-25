@@ -1,18 +1,18 @@
 using System;
 using System.Diagnostics;
-using static SpdtpMessageBase;
-using static SpdtpResourceInfoMessage;
+using static MessageBase;
+using static ResourceInfoMessage;
 
 /**
 * Session responsible for transmitting single resource, it exists both on sender and receiver side!
 */
-public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpResourceSegment, int>
+public class ResourceTransmission : SessionBase<ResourceInfoMessage, ResourceSegment, int>
 {
 	public static readonly int UNPROCESSED = 0;
 	public static readonly int PROCESSED = 1;
 	public static readonly int FINISHED = 2;
 	
-	protected SpdtpResourceSegment[] segments;
+	protected ResourceSegment[] segments;
 	protected int segmentPayloadSize;
 
 	protected int processedSegmentCount, expectedSegmentCount;
@@ -22,7 +22,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 
 	protected Stopwatch benchmarkTimer;
 
-	public ResourceTransmission(Connection connection, SpdtpResourceInfoMessage resourceMetadata, SpdtpResourceSegment[] segments = null) : base(connection, resourceMetadata)
+	public ResourceTransmission(Connection connection, ResourceInfoMessage resourceMetadata, ResourceSegment[] segments = null) : base(connection, resourceMetadata)
 	{
 		setSegments(segments);
 
@@ -86,7 +86,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 					if (count-- < 1 || isFinished())
 						break;
 
-					connection.sendMessage(new SpdtpResourceSegment(0, i, metadata.getResourceIdentifier()));
+					connection.sendMessage(new ResourceSegment(0, i, metadata.getResourceIdentifier()));
 					connection.getKeepAlive().restart();
 					// lastErrorIndex = i
 				}
@@ -94,7 +94,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 		}) { IsBackground = true }.Start();
 	}
 
-	public override int handleIncomingMessage(SpdtpResourceSegment resourceSegment)
+	public override int handleIncomingMessage(ResourceSegment resourceSegment)
 	{
 		if (resourceSegment.isState(STATE_REQUEST))
 		{
@@ -134,7 +134,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 				if (receivedErrorCount > 0)
 					receivedErrorCount--;
 
-				Console.WriteLine("Segment " + resourceSegment + " received successfully!");
+				Console.WriteLine(resourceSegment + " received successfully!");
 				if (isFinished())
 				{
 					stop();
@@ -177,7 +177,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	}
 
 	/**
-	* Fragment the resource and populate the SpdtpResourceSegment array...
+	* Fragment the resource and populate the ResourceSegment array...
 	* Remember to initialize segments[] correctly in advance...
 	*/
 	public ResourceTransmission initializeResourceTransmission(byte[] resourceBytes)
@@ -194,14 +194,14 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 			byte[] payload = new byte[payloadLength];
 			Array.Copy(resourceBytes, start, payload, 0, payloadLength);
 
-			segments[i] = new SpdtpResourceSegment(STATE_REQUEST, i, resourceIdentifier, payload);
+			segments[i] = new ResourceSegment(STATE_REQUEST, i, resourceIdentifier, payload);
 		}
 
 		return this;
 	}
 
 	/**
-	* Reconstruct the the resource from SpdtpResourceSegment array after it was populated...
+	* Reconstruct the the resource from ResourceSegment array after it was populated...
 	*/
 	public byte[] reconstructResource()
 	{
@@ -232,7 +232,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 		// isRunning = false;
 	}
 
-	public void setSegments(SpdtpResourceSegment[] segments)
+	public void setSegments(ResourceSegment[] segments)
 	{
 		this.segments = segments;
 		
@@ -240,7 +240,7 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 			setExpectedSegmentCount(segments.Length);
 	}
 
-	public SpdtpResourceSegment[] getSegments()
+	public ResourceSegment[] getSegments()
 	{
 		return segments;
 	}

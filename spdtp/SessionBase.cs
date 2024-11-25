@@ -1,7 +1,7 @@
 /**
 * Simple abstraction of communication session...
 */
-public abstract class SessionBase<MetaT, MsgT, ResuT> where MsgT : SpdtpMessageBase
+public abstract class SessionBase<MetaT, MsgT, ResuT> where MsgT : MessageBase
 {
 	protected MetaT metadata;
 

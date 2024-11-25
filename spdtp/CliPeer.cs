@@ -6,9 +6,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-using static SpdtpMessageBase;
-using static SpdtpResourceInfoMessage;
-using static SpdtpNegotiationMessage;
+using static MessageBase;
+using static ResourceInfoMessage;
+using static NegotiationMessage;
 
 /**
 * The implementation Spdtp peer with CLI interface as the implementor of Connection...
@@ -17,7 +17,7 @@ public class CliPeer : Connection
 {
 	public bool verbose = false;
 
-	protected SpdtpNegotiationMessage pendingNegotiationMessage;
+	protected NegotiationMessage pendingNegotiationMessage;
 	protected int resendErrAttempts = 0;
 	protected int standardKeepAlivePeriod = 5000;
 
@@ -280,7 +280,7 @@ public class CliPeer : Connection
 		var time = finishedResourceTransmission.getBenchmarkTimer().ElapsedMilliseconds;
 		if (finishedResourceTransmission.getMetadata().getResourceName().StartsWith(TEXT_MSG_MARK, StringComparison.Ordinal))
 		{
-			Console.WriteLine("---------- Text message ----------\n" + 
+			Console.WriteLine("\n---------- Text message ----------\n" + 
 							"Received segment count: " + finishedResourceTransmission.getProcessedSegmentCount() + "\n" +
 							bytes.Length + " bytes / " + time + " ms!\n" +
 							remoteSocket + ":");
@@ -289,7 +289,7 @@ public class CliPeer : Connection
 			return;
 		}
 		
-		Console.WriteLine("---------- Incoming file ---------- \n" + 
+		Console.WriteLine("\n---------- Incoming file ---------- \n" + 
 							"Received segment count: " + finishedResourceTransmission.getProcessedSegmentCount() + "\n" +
 							bytes.Length + " bytes / " + time + " ms!\n" +
 							remoteSocket + " => " + finishedResourceTransmission.getMetadata().getResourceName() + ":\n" + 
@@ -336,13 +336,13 @@ public class CliPeer : Connection
 				if (_receiveInterrupt)
 					continue;
 
-				SpdtpMessageBase spdtpMessage = newMessageFromBytes(rawMsg);
+				MessageBase spdtpMessage = newMessageFromBytes(rawMsg);
 				keepAlive.restart();
 
 				if (verbose)
 					Console.WriteLine("Message received:  " + spdtpMessage + " - " + Utils.formatHeader(rawMsg));
 
-				if (spdtpMessage is SpdtpNegotiationMessage && handleNegotiationMsg((SpdtpNegotiationMessage) spdtpMessage))
+				if (spdtpMessage is NegotiationMessage && handleNegotiationMsg((NegotiationMessage) spdtpMessage))
 					continue;
 
 				if (session != null && session.handleIncomingMessage(spdtpMessage))
@@ -367,7 +367,7 @@ public class CliPeer : Connection
 		}
 	}
 
-	public override bool attemptResend(SpdtpMessageBase message)
+	public override bool attemptResend(MessageBase message)
 	{
 		if (resendErrAttempts++ > ACCEPTABLE_ERR_COUNT)
 		{
@@ -384,7 +384,7 @@ public class CliPeer : Connection
 		resendErrAttempts = to;
 	}
 
-	protected bool handleNegotiationMsg(SpdtpNegotiationMessage negotiationMessage)
+	protected bool handleNegotiationMsg(NegotiationMessage negotiationMessage)
 	{
 		if (negotiationMessage.getMessageFlags() == SESSION_TERMINATION_8x1)
 		{

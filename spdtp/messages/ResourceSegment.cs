@@ -1,7 +1,7 @@
 using System;
 using NullFX.CRC;
 
-public class SpdtpResourceSegment : SpdtpMessageBase
+public class ResourceSegment : MessageBase
 {
 	public static readonly int TRANSMISSION_SUCCESSFUL_24x1 = 0b0000_0000__1111_1111__1111_1111__1111_1111;
 
@@ -10,7 +10,7 @@ public class SpdtpResourceSegment : SpdtpMessageBase
 
 	protected byte[] payload;
 
-	public SpdtpResourceSegment(byte additionalMessageFlags = 0, int segmentID = 0, int resourceIdentifier = 0, byte[] payload = null) : base((byte) (additionalMessageFlags | RESOURCE_SEGMENT), RESOURCE_SEGMENT)
+	public ResourceSegment(byte additionalMessageFlags = 0, int segmentID = 0, int resourceIdentifier = 0, byte[] payload = null) : base((byte) (additionalMessageFlags | RESOURCE_SEGMENT), RESOURCE_SEGMENT)
 	{
 		setSegmentID(segmentID);
 		setResourceIdentifier(resourceIdentifier);
@@ -24,14 +24,14 @@ public class SpdtpResourceSegment : SpdtpMessageBase
 		return GetType().Name + "[" + messageFlags + ", " + segmentID + ", " + resourceIdentifier + "]";
 	}
 
-	public override SpdtpResourceSegment createResponse(byte additionalFlags = 0)
+	public override ResourceSegment createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceSegment((byte) (STATE_RESPONSE | additionalFlags));
+		return new ResourceSegment((byte) (STATE_RESPONSE | additionalFlags));
 	}
 
-	public override SpdtpResourceSegment createResendRequest(byte additionalFlags = 0)
+	public override ResourceSegment createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags), getSegmentID(), getResourceIdentifier());
+		return new ResourceSegment((byte) (STATE_RESEND_REQUEST | additionalFlags), getSegmentID(), getResourceIdentifier());
 	}
 
 	public override byte[] getBytes()
@@ -59,7 +59,7 @@ public class SpdtpResourceSegment : SpdtpMessageBase
 		return bytes;
 	}
 
-	public override SpdtpMessageBase setFromBytes(byte[] bytes)
+	public override MessageBase setFromBytes(byte[] bytes)
 	{
 		messageFlags = bytes[0];
 
@@ -111,8 +111,8 @@ public class SpdtpResourceSegment : SpdtpMessageBase
 		this.payload = payload;
 	}
 
-	public static SpdtpResourceSegment newTransmissionSuccessfulResponse(int resourceIdentifier, byte additionalFlags = 0) // 8x24
+	public static ResourceSegment newTransmissionSuccessfulResponse(int resourceIdentifier, byte additionalFlags = 0) // 8x24
 	{
-		return new SpdtpResourceSegment((byte) (STATE_RESPONSE | additionalFlags), TRANSMISSION_SUCCESSFUL_24x1, resourceIdentifier);
+		return new ResourceSegment((byte) (STATE_RESPONSE | additionalFlags), TRANSMISSION_SUCCESSFUL_24x1, resourceIdentifier);
 	}
 }

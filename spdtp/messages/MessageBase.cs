@@ -3,7 +3,7 @@ using System;
 /**
 * This is common message type of Spdtp.
 */
-public abstract class SpdtpMessageBase
+public abstract class MessageBase
 {
 	public static readonly byte NEGOTIATION = 0b0100_0000;
 	public static readonly byte INCOMING_RESOURCE_INFO = 0b1000_0000;
@@ -19,20 +19,20 @@ public abstract class SpdtpMessageBase
 
 	protected bool isValid = true;
 
-	public SpdtpMessageBase(byte messageFlags = 0, byte type = 0)
+	public MessageBase(byte messageFlags = 0, byte type = 0)
 	{
 		this.messageFlags = messageFlags;
 
 		this.type = type;
 	}
 
-	public abstract SpdtpMessageBase createResponse(byte additionalFlags = 0);
+	public abstract MessageBase createResponse(byte additionalFlags = 0);
 	
-	public abstract SpdtpMessageBase createResendRequest(byte additionalFlags = 0);
+	public abstract MessageBase createResendRequest(byte additionalFlags = 0);
 
 	public abstract byte[] getBytes();
 
-	public abstract SpdtpMessageBase setFromBytes(byte[] bytes);
+	public abstract MessageBase setFromBytes(byte[] bytes);
 
 	public virtual bool validate()
 	{
@@ -64,21 +64,21 @@ public abstract class SpdtpMessageBase
 		return (byte) (messageFlags & 0b0010_0000);
 	}
 
-	public static SpdtpMessageBase newMessageFromBytes(byte[] bytes)
+	public static MessageBase newMessageFromBytes(byte[] bytes)
 	{
 		try
 		{
 			if (bytes.Length == 4)
 			{
-				return new SpdtpNegotiationMessage().setFromBytes(bytes);
+				return new NegotiationMessage().setFromBytes(bytes);
 			}
 
 			if (bytes.Length <= 70 && (bytes[0] & RESOURCE_SEGMENT) != RESOURCE_SEGMENT)
 			{
-				return new SpdtpResourceInfoMessage().setFromBytes(bytes);
+				return new ResourceInfoMessage().setFromBytes(bytes);
 			}
 
-			return new SpdtpResourceSegment().setFromBytes(bytes);
+			return new ResourceSegment().setFromBytes(bytes);
 		}
 		catch (Exception ex) // Should never happen...
 		{

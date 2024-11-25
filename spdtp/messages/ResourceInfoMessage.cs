@@ -6,7 +6,7 @@ using System.Text;
 * INCOMING_RESOURCE_INFO message.
 * Used to inform the other peer about the incoming resource so he can act accordingly...
 */
-public class SpdtpResourceInfoMessage : SpdtpMessageBase
+public class ResourceInfoMessage : MessageBase
 {
 	public static readonly String TEXT_MSG_MARK = new String(new char[] {(char) 1, (char) 3, (char) 2,});
 
@@ -15,7 +15,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessageBase
 
 	protected int resourceIdentifier; // Cache...
 
-	public SpdtpResourceInfoMessage(byte additionalMessageFlags = 0, int segmentCount = 0, String resourceName = "") : base((byte) (additionalMessageFlags | INCOMING_RESOURCE_INFO), INCOMING_RESOURCE_INFO)
+	public ResourceInfoMessage(byte additionalMessageFlags = 0, int segmentCount = 0, String resourceName = "") : base((byte) (additionalMessageFlags | INCOMING_RESOURCE_INFO), INCOMING_RESOURCE_INFO)
 	{
 		setSegmentCount(segmentCount);
 		setResourceName(resourceName);
@@ -35,14 +35,14 @@ public class SpdtpResourceInfoMessage : SpdtpMessageBase
 		return GetType().Name + "[" + messageFlags + ", " + segmentCount + ", " + resourceName + "]";
 	}
 
-	public override SpdtpResourceInfoMessage createResponse(byte additionalFlags = 0)
+	public override ResourceInfoMessage createResponse(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceInfoMessage((byte) (STATE_RESPONSE | additionalFlags), getSegmentCount(), getResourceName());
+		return new ResourceInfoMessage((byte) (STATE_RESPONSE | additionalFlags), getSegmentCount(), getResourceName());
 	}
 
-	public override SpdtpResourceInfoMessage createResendRequest(byte additionalFlags = 0)
+	public override ResourceInfoMessage createResendRequest(byte additionalFlags = 0)
 	{
-		return new SpdtpResourceInfoMessage((byte) (STATE_RESEND_REQUEST | additionalFlags));
+		return new ResourceInfoMessage((byte) (STATE_RESEND_REQUEST | additionalFlags));
 	}
 
 	public override byte[] getBytes()
@@ -60,7 +60,7 @@ public class SpdtpResourceInfoMessage : SpdtpMessageBase
 		return bytes;
 	}
 
-	public override SpdtpMessageBase setFromBytes(byte[] bytes)
+	public override MessageBase setFromBytes(byte[] bytes)
 	{
 		messageFlags = bytes[0];
 

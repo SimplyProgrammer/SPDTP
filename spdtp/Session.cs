@@ -1,20 +1,20 @@
 using System;
 
-using static SpdtpMessageBase;
-using static SpdtpResourceInfoMessage;
-using static SpdtpResourceSegment;
+using static MessageBase;
+using static ResourceInfoMessage;
+using static ResourceSegment;
 using static ResourceTransmission;
 
 /**
 * This class represents the established session where the real communication is handled...
 */
-public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bool>
+public class Session : SessionBase<NegotiationMessage, MessageBase, bool>
 {
 	protected Dictionary<int, ResourceTransmission> transmissions = new Dictionary<int, ResourceTransmission>();
 
-	protected SpdtpResourceInfoMessage pendingResourceInfoMessage;
+	protected ResourceInfoMessage pendingResourceInfoMessage;
 
-	public Session(Connection connection, SpdtpNegotiationMessage metadata) : base(connection, metadata) {}
+	public Session(Connection connection, NegotiationMessage metadata) : base(connection, metadata) {}
 
 	public override void onKeepAlive()
 	{
@@ -25,7 +25,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			entry.Value?.onKeepAlive();
 	}
 
-	public SpdtpResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
+	public ResourceInfoMessage sendResource(byte[] resourceBytes, Object resourceDescriptor)
 	{
 		if (pendingResourceInfoMessage != null)
 		{
@@ -42,7 +42,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 				Console.WriteLine("Resource is too big and it exceeds the maximum allowed segment count! Please consider increasing the segment's payload size or chose a smaller resource!");
 				return null;
 			}
-			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resourceDescriptor).Name, 64));
+			pendingResourceInfoMessage = new ResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resourceDescriptor).Name, 64));
 		}
 		else if (resourceDescriptor is String)
 		{
@@ -52,7 +52,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 				Console.WriteLine("Resource is too big and it exceeds the maximum allowed segment count! Please consider increasing the segment's payload size or chose a smaller resource!");
 				return null;
 			}
-			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
+			pendingResourceInfoMessage = new ResourceInfoMessage(STATE_REQUEST, segmentCount, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
 		}
 		else
 		{
@@ -62,7 +62,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 
 		try
 		{
-			var transmission = new ResourceTransmission(connection, pendingResourceInfoMessage, new SpdtpResourceSegment[segmentCount]);
+			var transmission = new ResourceTransmission(connection, pendingResourceInfoMessage, new ResourceSegment[segmentCount]);
 			transmissions.Add(pendingResourceInfoMessage.getResourceIdentifier(), transmission);
 			transmission.initializeResourceTransmission(resourceBytes);
 
@@ -78,17 +78,17 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		return pendingResourceInfoMessage;
 	}
 
-	public override bool handleIncomingMessage(SpdtpMessageBase message)
+	public override bool handleIncomingMessage(MessageBase message)
 	{
-		if (message is SpdtpResourceInfoMessage)
-			return handleIncomingResourceMsg((SpdtpResourceInfoMessage) message);
+		if (message is ResourceInfoMessage)
+			return handleIncomingResourceMsg((ResourceInfoMessage) message);
 
-		if (message is SpdtpResourceSegment)
-			return handleResourceSegmentMsg((SpdtpResourceSegment) message);
+		if (message is ResourceSegment)
+			return handleResourceSegmentMsg((ResourceSegment) message);
 		return false;
 	}
 
-	public bool handleIncomingResourceMsg(SpdtpResourceInfoMessage incomingResourceMsg)
+	public bool handleIncomingResourceMsg(ResourceInfoMessage incomingResourceMsg)
 	{
 		if (!incomingResourceMsg.validate())
 		{
@@ -108,7 +108,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		{
 			try
 			{
-				var transmission = new ResourceTransmission(connection, incomingResourceMsg, new SpdtpResourceSegment[incomingResourceMsg.getSegmentCount()]);
+				var transmission = new ResourceTransmission(connection, incomingResourceMsg, new ResourceSegment[incomingResourceMsg.getSegmentCount()]);
 				transmissions.Add(incomingResourceMsg.getResourceIdentifier(), transmission);
 
 				Console.WriteLine("Resource for " + incomingResourceMsg.ToString(true) + " were initialized successfully, ready for incoming transmission!");
@@ -152,7 +152,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		return false;
 	}
 
-	public bool handleResourceSegmentMsg(SpdtpResourceSegment resourceSegment)
+	public bool handleResourceSegmentMsg(ResourceSegment resourceSegment)
 	{
 		int resourceIdentifier = resourceSegment.getResourceIdentifier();
 		var transmission = transmissions.GetValueOrDefault(resourceIdentifier);

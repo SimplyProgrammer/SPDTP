@@ -5,8 +5,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-using static SpdtpMessageBase;
-using static SpdtpNegotiationMessage;
+using static MessageBase;
+using static NegotiationMessage;
 
 /**
 * The abstraction of UDP Connection (peer)
@@ -47,9 +47,9 @@ public abstract class Connection
 		return GetType().Name + "[" + localSocket.ToString() + " <-> " + remoteSocket.ToString() + "]";
 	}
 
-	public virtual SpdtpNegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000)
+	public virtual NegotiationMessage openSession(short segmentPayloadSize, int newKeepAlivePeriod = 5000)
 	{
-		var negotiationMessage = sendMessage(new SpdtpNegotiationMessage(STATE_REQUEST, segmentPayloadSize));
+		var negotiationMessage = sendMessage(new NegotiationMessage(STATE_REQUEST, segmentPayloadSize));
 		keepAlive.setTimeout(newKeepAlivePeriod);
 		keepAlive.restart();
 
@@ -75,15 +75,15 @@ public abstract class Connection
 		close();
 	}
 
-	public abstract T sendMessage<T>(T message) where T : SpdtpMessageBase;
+	public abstract T sendMessage<T>(T message) where T : MessageBase;
 
 	protected abstract void receiveLoop();
 
-	public abstract bool attemptResend(SpdtpMessageBase message);
+	public abstract bool attemptResend(MessageBase message);
 
 	public abstract void resetResendAttempts(int to = 0);
 
-	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, SpdtpMessageBase keepAliveMessage*/);
+	public abstract void handleKeepAlive(AsyncTimer keepAlive/*, MessageBase keepAliveMessage*/);
 
 	public abstract void handleTransmittedResource(ResourceTransmission finishedResourceTransmission);
 

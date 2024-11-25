@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using static SpdtpMessageBase;
-using static SpdtpResourceInfoMessage;
+using static MessageBase;
+using static ResourceInfoMessage;
 
 public class Program
 {
@@ -27,18 +27,18 @@ public class Program
 	public static void test()
 	{
 		/* Test Negotiation */
-		// var spdtpNegotiationMessage = new SpdtpNegotiationMessage((byte) (SpdtpMessageBase.KEEP_ALIVE | SpdtpMessageBase.STATE_REQUEST), 123);
+		// var NegotiationMessage = new NegotiationMessage((byte) (MessageBase.KEEP_ALIVE | MessageBase.STATE_REQUEST), 123);
 		
-		// Console.WriteLine(spdtpNegotiationMessage);
-		// Console.WriteLine(spdtpNegotiationMessage.validate());
-		// Console.WriteLine(Utils.formatHeader(spdtpNegotiationMessage.getBytes()));
+		// Console.WriteLine(NegotiationMessage);
+		// Console.WriteLine(NegotiationMessage.validate());
+		// Console.WriteLine(Utils.formatHeader(NegotiationMessage.getBytes()));
 
-		// var newHeader = Utils.introduceRandErrors(spdtpNegotiationMessage.getBytes(), 1);
-		// var newSpdtpNegotiationMessage = SpdtpMessageBase.newMessageFromBytes(newHeader);
-		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// var newHeader = Utils.introduceRandErrors(NegotiationMessage.getBytes(), 1);
+		// var newNegotiationMessage = MessageBase.newMessageFromBytes(newHeader);
+		// // Console.WriteLine(NegotiationMessage.getKeepAliveFlag());
 		
-		// Console.WriteLine(spdtpNegotiationMessage);
-		// Console.WriteLine(newSpdtpNegotiationMessage.validate());
+		// Console.WriteLine(NegotiationMessage);
+		// Console.WriteLine(newNegotiationMessage.validate());
 		// Console.WriteLine(Utils.formatHeader(newHeader));
 
 		// Console.WriteLine();
@@ -46,24 +46,24 @@ public class Program
 		/* Test resource info */
 		// Console.WriteLine(Utils.getHashIdentifier("hii"));
 
-		// var SpdtpMessageBase = new SpdtpResourceInfoMessage(SpdtpMessageBase.STATE_REQUEST, 123, SpdtpResourceInfoMessage.TEXT_MSG_MARK + "Hello!");
+		// var MessageBase = new ResourceInfoMessage(MessageBase.STATE_REQUEST, 123, ResourceInfoMessage.TEXT_MSG_MARK + "Hello!");
 		
-		// Console.WriteLine(SpdtpMessageBase);
-		// Console.WriteLine(SpdtpMessageBase.validate());
-		// Console.WriteLine(SpdtpMessageBase.getResourceIdentifier());
-		// Console.WriteLine(Utils.formatHeader(SpdtpMessageBase.getBytes()) + "\n");
+		// Console.WriteLine(MessageBase);
+		// Console.WriteLine(MessageBase.validate());
+		// Console.WriteLine(MessageBase.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(MessageBase.getBytes()) + "\n");
 
-		// var newHeader = Utils.introduceRandErrors(SpdtpMessageBase.getBytes(), 1);
+		// var newHeader = Utils.introduceRandErrors(MessageBase.getBytes(), 1);
 
-		// var newSpdtpMessageBase = SpdtpMessageBase.newMessageFromBytes(newHeader);
+		// var newMessageBase = MessageBase.newMessageFromBytes(newHeader);
 
-		// Console.WriteLine(newSpdtpMessageBase);
-		// Console.WriteLine(newSpdtpMessageBase.validate());
-		// Console.WriteLine(SpdtpMessageBase.getResourceIdentifier());
-		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(newMessageBase);
+		// Console.WriteLine(newMessageBase.validate());
+		// Console.WriteLine(MessageBase.getResourceIdentifier());
+		// // Console.WriteLine(NegotiationMessage.getKeepAliveFlag());
 		// Console.WriteLine(Utils.formatHeader(newHeader));
 		
-		// Console.WriteLine(newSpdtpMessageBase);
+		// Console.WriteLine(newMessageBase);
 
 		/* Test trans */
 		// FileStream resource = File.Open("./data/test_7221_2mb.jpg", FileMode.Open, FileAccess.Read);
@@ -77,9 +77,9 @@ public class Program
 		// int segmentPayloadSize = 123;
 
 		// var segmentCount = (bytes.Length - 1) / segmentPayloadSize + 1;
-		// var pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resource).Name, 64));
+		// var pendingResourceInfoMessage = new ResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resource).Name, 64));
 
-		// var resourceTrans = new ResourceTransmission(null, pendingResourceInfoMessage, new SpdtpResourceSegment[segmentCount]);
+		// var resourceTrans = new ResourceTransmission(null, pendingResourceInfoMessage, new ResourceSegment[segmentCount]);
 		// resourceTrans.initializeResourceTransmission(bytes, segmentPayloadSize);
 
 		// Console.WriteLine(resourceTrans);
@@ -98,24 +98,24 @@ public class Program
 		// fs.Write(reconstructedBytes, 0, reconstructedBytes.Length);
 		// fs.Close();
 
-		// var SpdtpMessageBase = new SpdtpResourceSegment(STATE_REQUEST, 0, 1456, new byte[] {100, 101, 102});
+		// var MessageBase = new ResourceSegment(STATE_REQUEST, 0, 1456, new byte[] {100, 101, 102});
 		
-		// Console.WriteLine(SpdtpMessageBase);
-		// Console.WriteLine(SpdtpMessageBase.validate());
-		// Console.WriteLine(SpdtpMessageBase.getResourceIdentifier());
-		// Console.WriteLine(Utils.formatHeader(SpdtpMessageBase.getBytes()) + "\n");
+		// Console.WriteLine(MessageBase);
+		// Console.WriteLine(MessageBase.validate());
+		// Console.WriteLine(MessageBase.getResourceIdentifier());
+		// Console.WriteLine(Utils.formatHeader(MessageBase.getBytes()) + "\n");
 
-		// var newHeader = Utils.introduceRandErrors(SpdtpMessageBase.getBytes(), 0);
+		// var newHeader = Utils.introduceRandErrors(MessageBase.getBytes(), 0);
 
-		// SpdtpResourceSegment newSpdtpMessageBase = (SpdtpResourceSegment)SpdtpMessageBase.newMessageFromBytes(newHeader);
+		// ResourceSegment newMessageBase = (ResourceSegment)MessageBase.newMessageFromBytes(newHeader);
 
-		// Console.WriteLine(newSpdtpMessageBase);
-		// Console.WriteLine(newSpdtpMessageBase.validate());
-		// Console.WriteLine(newSpdtpMessageBase.getResourceIdentifier());
-		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// Console.WriteLine(newMessageBase);
+		// Console.WriteLine(newMessageBase.validate());
+		// Console.WriteLine(newMessageBase.getResourceIdentifier());
+		// // Console.WriteLine(NegotiationMessage.getKeepAliveFlag());
 		// Console.WriteLine(Utils.formatHeader(newHeader)+ "\n\n"); 
 
-		// var responseMsg = SpdtpMessageBase.createResendRequest();
+		// var responseMsg = MessageBase.createResendRequest();
 		
 		// Console.WriteLine(responseMsg);
 		// Console.WriteLine(responseMsg.validate());
@@ -124,12 +124,12 @@ public class Program
 
 		// var newResponseHeader = Utils.introduceRandErrors(responseMsg.getBytes(), 0);
 
-		// SpdtpResourceSegment newResponseMsg = (SpdtpResourceSegment) newMessageFromBytes(newResponseHeader);
+		// ResourceSegment newResponseMsg = (ResourceSegment) newMessageFromBytes(newResponseHeader);
 
 		// Console.WriteLine(newResponseMsg);
 		// Console.WriteLine(newResponseMsg.validate());
 		// Console.WriteLine(newResponseMsg.getResourceIdentifier());
-		// // Console.WriteLine(spdtpNegotiationMessage.getKeepAliveFlag());
+		// // Console.WriteLine(NegotiationMessage.getKeepAliveFlag());
 		// Console.WriteLine(Utils.formatHeader(newResponseHeader)); 
 	}
 
