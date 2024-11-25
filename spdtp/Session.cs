@@ -161,7 +161,7 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			if (transmissions.Remove(resourceIdentifier)) // ? Maybe do not for caching
 			{
 				transmission.stop();
-				Console.WriteLine("Resource (" + resourceIdentifier + ") was successfully received by the other peer, resources deallocated!");
+				Console.WriteLine("Resource (" + resourceIdentifier + ") was successfully received by the other peer (acknowledged), resources deallocated!");
 			}
 			return true;
 		}

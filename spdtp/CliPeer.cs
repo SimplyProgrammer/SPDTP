@@ -53,7 +53,7 @@ public class CliPeer : Connection
 				}
 				str += "}\n\n";
 
-				str += "-er <count> <interval>: Simulate errors. Sets count of errors in outgoing messages and interval between erroneous messages.\n";
+				str += "-er <faulty message count> <interval>: Simulate errors. Sets count of errors in outgoing messages and interval between erroneous messages.\n";
 				str += "-kpal-per <milliseconds>: Update the keep-alive period.\n";
 				str += "-kpal-rest: Restart the keep-alive timer immediately.\n";
 				str += "-cls-res: Clear all active resource transmissions.\n";

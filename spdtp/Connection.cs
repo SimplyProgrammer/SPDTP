@@ -16,7 +16,7 @@ public abstract class Connection
 	public static readonly int KEEP_ALIVE_ATTEMPTS = 3;
 	public static readonly int ACCEPTABLE_ERR_COUNT = 2;
 
-	public static readonly short MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE = 1460;
+	public static readonly short MAX_RECOMMENDED_SEGMENT_PAYLOAD_SIZE = 1460; // = 1500 - 20 (ip header) - 8 (Udp) - 12 (Resource segment header, biggest one)
 
 	protected UdpClient udpClient;
 	protected IPEndPoint remoteSocket;
