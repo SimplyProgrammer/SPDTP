@@ -157,6 +157,7 @@ public class Program
 
 		// Console.WriteLine(Utils.formatHeader(Utils.getBytes((int) unint)) + "\n" + Utils.formatHeader(Utils.getBytes(sint)) + "\n" + (uint) Utils.getInt(Utils.getBytes((int) unint)) + "\n" + (unint == sint) + "\n" + (unint == (uint) sint));
 
+		// Console.Clear();
 		List<String> ips = new List<String>();
 		IPHostEntry entry = Dns.GetHostEntry(Dns.GetHostName());
 		foreach (IPAddress ip in entry.AddressList)
@@ -191,7 +192,7 @@ public class Program
 				if (remoteIpAndPort[0].Length < 1)
 					remoteIpAndPort[0] = localIpAndPort[0];
 
-				int remotePort = remoteIpAndPort[1].StartsWith("+") ? localPort+1 : (remoteIpAndPort[1].StartsWith("-") ? localPort-1 : short.Parse(remoteIpAndPort[1]));
+				int remotePort = remoteIpAndPort[1].StartsWith("+") ? localPort+1 : (remoteIpAndPort[1].StartsWith("-") ? localPort-1 : remoteIpAndPort[1].Length < 1 ? localPort : short.Parse(remoteIpAndPort[1]));
 				remotePoint = new IPEndPoint(IPAddress.Parse(remoteIpAndPort[0].Replace("localhost", "127.0.0.1").Replace("ip", ips[0])), remotePort);
 
 				var peer = new CliPeer(localPoint, remotePoint);
