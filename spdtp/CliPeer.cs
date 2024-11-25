@@ -295,11 +295,18 @@ public class CliPeer : Connection
 							remoteSocket + " => " + finishedResourceTransmission.getMetadata().getResourceName() + ":\n" + 
 							"Saving into \"" + saveDirectory + "\"...");
 
-		var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
-		fs.Write(bytes, 0, bytes.Length);
+		try
+		{
+			var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
+			fs.Write(bytes, 0, bytes.Length);
 
-		Console.WriteLine("Successfully wrote " + fs.Length + " bytes into " + fs.Name + "!");
-		fs.Close();
+			Console.WriteLine("Successfully wrote " + fs.Length + " bytes into " + fs.Name + "!");
+			fs.Close();
+		}
+		catch (Exception ex) // Should not happen
+		{
+			Console.Error.WriteLine("Error has occurred: " + ex.Message);
+		}
 	}
 
 	public override T sendMessage<T>(T message)
