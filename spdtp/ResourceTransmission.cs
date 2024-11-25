@@ -165,7 +165,11 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public override void onKeepAlive()
 	{
 		if (!isFinished())
-			askToResendMissing(getExpectedSegmentCount() - processedSegmentCount);
+		{
+			int count = getExpectedSegmentCount() - processedSegmentCount;
+			askToResendMissing(count);
+			Console.WriteLine(metadata.getResourceIdentifier() + ": Requesting resend of " + count + " missing segments!");
+		}
 	}
 
 	/**
@@ -250,6 +254,11 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 	public void setExpectedSegmentCount(int expectedSegmentCount)
 	{
 		this.expectedSegmentCount = expectedSegmentCount;
+	}
+
+	public int getProcessedSegmentCount()
+	{
+		return this.processedSegmentCount;
 	}
 
 	// public void setProcessedSegmentCount(int processed)

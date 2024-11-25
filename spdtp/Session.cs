@@ -16,12 +16,6 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 
 	public Session(Connection connection, SpdtpNegotiationMessage metadata) : base(connection, metadata) {}
 
-	// protected void handlePendingResourceInfoTimeout(AsyncTimer resender)
-	// {
-	// 	Console.WriteLine(pendingResourceInfoMessage.ToString() + " - Pending resource info timed out, transmission aborted!");
-	// 	Console.WriteLine(transmissions.Remove(pendingResourceInfoMessage.getResourceIdentifier()) ? "Resources deallocated!" : "Resources not present (already deallocated)!");
-	// }
-
 	public override void onKeepAlive()
 	{
 		if (pendingResourceInfoMessage != null)
@@ -43,11 +37,21 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 		if (resourceDescriptor is FileStream)
 		{
 			segmentCount = (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1;
+			if (segmentCount > TRANSMISSION_SUCCESSFUL_24x1-1)
+			{
+				Console.WriteLine("Resource is too big and it exceeds the maximum allowed segment count! Please consider increasing the segment's payload size or chose a smaller resource!");
+				return null;
+			}
 			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, Utils.truncString(((FileStream) resourceDescriptor).Name, 64));
 		}
 		else if (resourceDescriptor is String)
 		{
 			segmentCount = (resourceBytes.Length - 1) / metadata.getSegmentPayloadSize() + 1;
+			if (segmentCount > TRANSMISSION_SUCCESSFUL_24x1-1)
+			{
+				Console.WriteLine("Resource is too big and it exceeds the maximum allowed segment count! Please consider increasing the segment's payload size or chose a smaller resource!");
+				return null;
+			}
 			pendingResourceInfoMessage = new SpdtpResourceInfoMessage(STATE_REQUEST, segmentCount, TEXT_MSG_MARK + Utils.truncString(resourceDescriptor.ToString(), 12, ""));
 		}
 		else
@@ -167,7 +171,8 @@ public class Session : SessionBase<SpdtpNegotiationMessage, SpdtpMessageBase, bo
 			int status = transmission.handleIncomingMessage(resourceSegment);
 			if (status >= FINISHED)
 			{
-				connection.sendMessage(newTransmissionSuccessfulResponse(resourceIdentifier));
+				connection.sendMessage(connection.sendMessage(newTransmissionSuccessfulResponse(resourceIdentifier)));
+
 				connection.handleTransmittedResource(transmission);
 				transmissions.Remove(resourceIdentifier);
 			}

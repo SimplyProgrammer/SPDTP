@@ -82,7 +82,7 @@ public class CliPeer : Connection
 				if (userInput.Length < 1)
 					continue;
 
-				if (userInput.StartsWith("?"))
+				if (userInput.StartsWith("?")) // CLI code...
 				{
 					Console.WriteLine(getHelp(userInput.EndsWith("-v")));
 				}
@@ -121,7 +121,7 @@ public class CliPeer : Connection
 					}
 					catch (Exception ex)
 					{
-						Console.Error.WriteLine("Error has occurred: " + ex);
+						Console.Error.WriteLine("Error has occurred: " + ex.Message);
 					}
 
 					Console.WriteLine(newKpAlivePeriod);
@@ -152,7 +152,7 @@ public class CliPeer : Connection
 						}
 						catch (Exception ex)
 						{
-							Console.Error.WriteLine("Error has occurred: " + ex);
+							Console.Error.WriteLine("Error has occurred: " + ex.Message);
 						}
 
 						if (_receiveInterrupt ^= true)
@@ -248,6 +248,7 @@ public class CliPeer : Connection
 						catch (Exception ex)
 						{
 							pathToSave = Path.Combine(Environment.ExpandEnvironmentVariables("%userprofile%"), "downloads");
+							Console.WriteLine("There is no such a directory... Defaulting to:");
 						}
 
 						saveDirectory = pathToSave;
@@ -257,6 +258,10 @@ public class CliPeer : Connection
 				}
 				else
 					Console.WriteLine("Unknown! Please type '?' or '? -v'");
+			}
+			catch (FormatException ex)
+			{
+				Console.Error.WriteLine("Error has occurred: " + ex.Message);
 			}
 			catch (IOException ex)
 			{
@@ -275,19 +280,25 @@ public class CliPeer : Connection
 		var time = finishedResourceTransmission.getBenchmarkTimer().ElapsedMilliseconds;
 		if (finishedResourceTransmission.getMetadata().getResourceName().StartsWith(TEXT_MSG_MARK, StringComparison.Ordinal))
 		{
-			Console.WriteLine("Text message from other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length + " total bytes in " + time + "ms :");
+			Console.WriteLine("---------- Text message ----------\n" + 
+							"Received segment count: " + finishedResourceTransmission.getProcessedSegmentCount() + "\n" +
+							bytes.Length + " bytes / " + time + " ms!\n" +
+							remoteSocket + ":");
 			Console.WriteLine(Encoding.ASCII.GetString(bytes));
 
 			return;
 		}
 		
-		Console.WriteLine("Incoming file \"" + finishedResourceTransmission.getMetadata().getResourceName() + "\" from the other peer (" + remoteSocket + ") - " + finishedResourceTransmission.ToString(false) + " | " + bytes.Length  + " total bytes in " + time + "ms!\n" +
-							"Saving into \"" + saveDirectory + "\" :");
+		Console.WriteLine("---------- Incoming file ---------- \n" + 
+							"Received segment count: " + finishedResourceTransmission.getProcessedSegmentCount() + "\n" +
+							bytes.Length + " bytes / " + time + " ms!\n" +
+							remoteSocket + " => " + finishedResourceTransmission.getMetadata().getResourceName() + ":\n" + 
+							"Saving into \"" + saveDirectory + "\"...");
 
 		var fs = new FileStream(Path.Combine(saveDirectory, Path.GetFileName(finishedResourceTransmission.getMetadata().getResourceName())), FileMode.Create, FileAccess.Write);
 		fs.Write(bytes, 0, bytes.Length);
 
-		Console.WriteLine(fs.Length + " bytes were written into " + fs.Name);
+		Console.WriteLine("Successfully wrote " + fs.Length + " bytes into " + fs.Name + "!");
 		fs.Close();
 	}
 

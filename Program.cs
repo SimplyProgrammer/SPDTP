@@ -200,7 +200,7 @@ public class Program
 			}
 			catch (Exception ex) 
 			{
-				Console.Error.WriteLine("Error has occurred: " + ex);
+				Console.Error.WriteLine("Error has occurred: " + ex.Message);
 			}
 		}
 	}
