@@ -39,7 +39,7 @@ public class CliPeer : Connection
 		{
 			str += "Session was opened with segment's payload size of " + session.getMetadata().getSegmentPayloadSize() + " bytes!\n";
 			str += "Type 'open' to change the segment's payload size of the session!\n";
-			str += "Type #<message> something to send a textual message!\nType #!<file path> to send file!\n";
+			str += "Type #<message> something to send a textual message!\nType #!<valid file path> to send file!\n";
 			str += "Type 'disc' to terminate the session and connection!\n";
 			str += "Type 'save-dir <valid directory path>' to specify where to save received files!\n";
 
@@ -53,12 +53,12 @@ public class CliPeer : Connection
 				}
 				str += "}\n\n";
 
-				str += "-er <faulty message count> <interval>: Simulate errors. Sets count of errors in outgoing messages and interval between erroneous messages.\n";
+				str += "-er <faulty message count> <interval>: Simulate errors (1 bit flip). Sets the count of erroneous outgoing messages and interval between them.\n";
 				str += "-kpal-per <milliseconds>: Update the keep-alive period.\n";
 				str += "-kpal-rest: Restart the keep-alive timer immediately.\n";
 				str += "-cls-res: Clear all active resource transmissions.\n";
 				str += "-verbo: Toggle verbose logging on/off.\n";
-				str += "-interr <delay in ms>: Toggle simulated interruptions in receiving messages.\n";
+				str += "-interr <delay in ms>: Toggle simulated interruption in receiving messages after specified delay.\n";
 			}
 		}
 		else

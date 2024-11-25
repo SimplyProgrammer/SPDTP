@@ -104,6 +104,12 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 			int segmentID = resourceSegment.getSegmentID();
 			if (!resourceSegment.validate())
 			{
+				if (receivedErrorCount++ > Connection.ACCEPTABLE_ERR_COUNT)
+				{
+					connection.doTerminate("Session and connection terminated (too many transmission errors)!");
+					return PROCESSED;
+				}
+
 				if (segmentID < expectedSegmentCount && segments[segmentID] == null) // Segment id seems to be legit, we can trust it...
 				{
 					connection.sendMessage(resourceSegment.createResendRequest());
@@ -115,8 +121,6 @@ public class ResourceTransmission : SessionBase<SpdtpResourceInfoMessage, SpdtpR
 					askToResendMissing();
 				}
 
-				if (receivedErrorCount++ > Connection.ACCEPTABLE_ERR_COUNT)
-					connection.doTerminate("Session and connection terminated (too many transmission errors)!");
 				return PROCESSED;
 			}
 
