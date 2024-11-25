@@ -1,9 +1,9 @@
 # SPDTP coloring (View->Color Rules->Import...->This file)	
 											bg				fg
-@SPDTP Kpal@spdtp.flags & 0b00100000@[0,8224,12079][25700,25700,25700]
-
 @SPDTP Transmission finish@spdtp.segment.id>=16777215@[43690,65535,0][5654,20654,5654]
 @SPDTP End...@spdtp.flags==255@[43690,43690,0][5654,20654,5654]
+
+@SPDTP Kpal@spdtp.flags & 0b00100000@[0,8224,12079][25700,25700,25700]
 
 @SPDTP Nego response@spdtp.message_type==NEGOTIATION && spdtp.transmission_state==STATE_RESPONSE@[0,43690,65535][22616,22616,22616]
 @SPDTP Nego err@spdtp.message_type==NEGOTIATION && spdtp.transmission_state==STATE_RESEND_REQUEST@[0,43690,65535][44204,0,26471]
