@@ -133,6 +133,23 @@ public class Program
 		// Console.WriteLine(Utils.formatHeader(newResponseHeader)); 
 	}
 
+	public static String cypher(String msg)
+	{
+		String result = "";
+		for (int i = 0; i < msg.Length; i++)
+		{
+			if (i+1 >= msg.Length)
+				break;
+			result += msg[i+1];
+			result += msg[i];
+			result += " ";
+
+			i+=1;
+		}
+
+		return result;
+	}
+
 	public static void Main(string[] args)
 	{
 		// test();

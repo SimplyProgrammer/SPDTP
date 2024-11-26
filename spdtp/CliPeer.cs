@@ -284,7 +284,18 @@ public class CliPeer : Connection
 							"Received segment count: " + finishedResourceTransmission.getProcessedSegmentCount() + "\n" +
 							bytes.Length + " bytes / " + time + " ms!\n" +
 							remoteSocket + ":");
-			Console.WriteLine(Encoding.ASCII.GetString(bytes));
+
+			String textMessage = Encoding.ASCII.GetString(bytes);
+			textMessage = Program.cypher(textMessage);
+			Console.WriteLine(textMessage);
+
+			int pairCount = 0;
+			for (int i = 0; i < textMessage.Length; i++)
+			{
+				if (textMessage[i] == ' ')
+					pairCount++;
+			}
+			Console.WriteLine("Pair count: " + pairCount);
 
 			return;
 		}
